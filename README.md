@@ -1,4 +1,4 @@
-# SecurityTools-RepoScanner
+# SecurityTools - RepoScanner
 
 This tool can be used to create a database of artifacts available in given set of source repositories. Gathered information will include:
 * Repository Type
@@ -29,6 +29,11 @@ mvn clean install
 ## Usage 
 Note: Passwords and OAuth2 Tokens are requested as command line inputs.
 ```
+-------------------------------------------------
+-----                                       -----
+-----          Repository Scanner           -----
+-----                                       -----
+-------------------------------------------------
 Usage: Repo Scanner [options]
   Options:
     -git.oauth2
@@ -50,9 +55,28 @@ Usage: Repo Scanner [options]
     -jdbc.dialect
       Database Hibernate dialect (Default: org.hibernate.dialect.MySQLDialect)
     -verbose, -v
-      Verbose output for debugging requirements
+      Verbose output
+      Default: false
+    -debug, -d
+      Verbose + Debug output for debugging requirements
       Default: false
     --help, -help, -?
+
+    -jdbc.create
+      Drop and create JDBC tables
+      Default: false
+    -threads.tag
+      Thread count used to fetch tag information for each repository (Default: 
+      20) 
+      Default: 0
+    -threads.repo
+      Thread count doing repository scanning (Example: scan each tag of each 
+      repository) (Default: 1)
+      Default: 0
+    -threads.artifact
+      Thread count doing artifact level scanning (Example: scan downloaded 
+      repository for build information) (Default: 1)
+      Default: 0
 ```
 ## Usage Examples
 Scan GIT "wso2" and "wso2-extensions" repositories
