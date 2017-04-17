@@ -14,8 +14,8 @@ public class AppConfig {
     private static List<String> githubAccountsToScan;
     private static List<String> mavenOutputSkipPatterns;
 
-    private static int repoWorkerThreadCount = 2;
-    private static int artifactWorkerThreadCount = 5;
+    private static int repoWorkerThreadCount = 1;
+    private static int artifactWorkerThreadCount = 1;
     private static int tagWorkerThreadCount = 20;
 
     public static boolean isVerbose() {

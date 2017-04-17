@@ -50,6 +50,15 @@ public class Main {
     @Parameter(names = {"-jdbc.create"}, description = "Drop and create JDBC tables", order = 13)
     private boolean databaseCreate;
 
+    @Parameter(names = {"-threads.tag"}, description = "Thread count used to fetch tag information for each repository (Default: 20)", order = 14)
+    private int tagWorkerThreadCount;
+
+    @Parameter(names = {"-threads.repo"}, description = "Thread count doing repository scanning (Example: scan each tag of each repository) (Default: 1)", order = 15)
+    private int repoWorkerThreadCount;
+
+    @Parameter(names = {"-threads.artifact"}, description = "Thread count doing artifact level scanning (Example: scan downloaded repository for build information) (Default: 1)", order = 16)
+    private int artifactWorkerThreadCount;
+
     public static void main(String[] args) throws Exception {
         Main main = new Main();
 
