@@ -9,7 +9,8 @@ This tool can be used to create a database of artifacts available in given set o
 * Artifact ID
 * Group ID
 * Packaging 
-* Version 
+* Version
+* Maven Final Name
 * Path of Artifact within Repository 
 
 Note: This repository is under active development. 
