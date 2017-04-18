@@ -7,8 +7,8 @@ import java.util.Date;
  * Created by ayoma on 4/17/17.
  */
 @Entity
-@Table(name = "ERROR_INFO")
-public class ErrorInfo {
+@Table(name = "REPO_ERROR")
+public class RepoError {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy=GenerationType.AUTO, generator="error_info_seq_gen")
@@ -23,16 +23,16 @@ public class ErrorInfo {
 
     @ManyToOne
     @JoinColumn(name = "REPO_INFO_ID", nullable = false)
-    private RepoInfo repoInfo;
+    private Repo repo;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "ADDED_DATE")
     private Date addedDate;
 
-    public ErrorInfo(String buildConfigLocation, String errorReason, RepoInfo repoInfo, Date addedDate) {
+    public RepoError(String buildConfigLocation, String errorReason, Repo repo, Date addedDate) {
         this.buildConfigLocation = buildConfigLocation;
         this.errorReason = errorReason;
-        this.repoInfo = repoInfo;
+        this.repo = repo;
         this.addedDate = addedDate;
     }
 
@@ -60,12 +60,12 @@ public class ErrorInfo {
         this.errorReason = errorReason;
     }
 
-    public RepoInfo getRepoInfo() {
-        return repoInfo;
+    public Repo getRepo() {
+        return repo;
     }
 
-    public void setRepoInfo(RepoInfo repoInfo) {
-        this.repoInfo = repoInfo;
+    public void setRepo(Repo repo) {
+        this.repo = repo;
     }
 
     public Date getAddedDate() {
@@ -74,5 +74,16 @@ public class ErrorInfo {
 
     public void setAddedDate(Date addedDate) {
         this.addedDate = addedDate;
+    }
+
+    @Override
+    public String toString() {
+        return "RepoError{" +
+                "id=" + id +
+                ", buildConfigLocation='" + buildConfigLocation + '\'' +
+                ", errorReason='" + errorReason + '\'' +
+                ", repo=" + repo +
+                ", addedDate=" + addedDate +
+                '}';
     }
 }

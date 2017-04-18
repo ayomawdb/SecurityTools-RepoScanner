@@ -1,16 +1,15 @@
 package org.wso2.security.tools.reposcanner.scanner;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.wso2.security.tools.reposcanner.AppConfig;
-import org.wso2.security.tools.reposcanner.ConsoleUtil;
 import org.wso2.security.tools.reposcanner.artifact.ArtifactInfoGenerator;
 import org.wso2.security.tools.reposcanner.artifact.MavenArtifactInfoGenerator;
 import org.wso2.security.tools.reposcanner.downloader.GitRepoDownloader;
 import org.wso2.security.tools.reposcanner.downloader.RepoDownloader;
 import org.wso2.security.tools.reposcanner.locator.BuildConfigLocator;
 import org.wso2.security.tools.reposcanner.locator.MavenBuildConfigLocator;
-import org.wso2.security.tools.reposcanner.pojo.ArtifactInfo;
-import org.wso2.security.tools.reposcanner.pojo.RepoInfo;
+import org.wso2.security.tools.reposcanner.pojo.Repo;
 import org.wso2.security.tools.reposcanner.repository.GitRepoInfoGenerator;
 import org.wso2.security.tools.reposcanner.repository.RepoInfoGenerator;
 import org.wso2.security.tools.reposcanner.storage.Storage;
@@ -27,6 +26,8 @@ import java.util.concurrent.TimeUnit;
  * Created by ayoma on 4/15/17.
  */
 public class GitRepoScanner implements RepoScanner {
+    private static Logger log = Logger.getLogger(GitRepoScanner.class.getName());
+
     private char[] oAuth2Token;
 
     public GitRepoScanner(char[] oAuth2Token) {
@@ -35,7 +36,7 @@ public class GitRepoScanner implements RepoScanner {
 
     public void scan(Storage storage) throws Exception {
         String consoleTag = "[GIT] ";
-        ConsoleUtil.println(consoleTag + "GIT repository scanning started.");
+        log.info(consoleTag + "GIT repository scanning started.");
 
         BuildConfigLocator buildConfigLocator = new MavenBuildConfigLocator();
         ArtifactInfoGenerator mavenArtifactInfoGenerator = new MavenArtifactInfoGenerator();
@@ -47,50 +48,49 @@ public class GitRepoScanner implements RepoScanner {
             FileUtils.deleteDirectory(gitTempFolder);
         }
         gitTempFolder.mkdir();
-        ConsoleUtil.println(consoleTag + "Temporary folder created at: " + gitTempFolder.getAbsolutePath());
+        log.info(consoleTag + "Temporary folder created at: " + gitTempFolder.getAbsolutePath());
 
         //Get list of repositories from GitHub
         RepoInfoGenerator repoInfoGenerator = new GitRepoInfoGenerator(oAuth2Token);
-        List<RepoInfo> repoInfoList = null;
+        List<Repo> repoList = null;
         try {
             if(AppConfig.getGithubAccountsToScan() == null) {
-                repoInfoList = new ArrayList<>();
-                ConsoleUtil.printInYellow(consoleTag + "No GitHub user accounts provided for the scan. Terminating...");
+                repoList = new ArrayList<>();
+                log.error(consoleTag + "No GitHub user accounts provided for the scan. Terminating...");
+                return;
             } else {
-                repoInfoList = repoInfoGenerator.getRepoInfoList(consoleTag, AppConfig.getGithubAccountsToScan().toArray(new String[0]));
+                repoList = repoInfoGenerator.getRepoInfoList(consoleTag, AppConfig.getGithubAccountsToScan().toArray(new String[0]));
             }
         } catch (Exception e) {
-            ConsoleUtil.printInRed(consoleTag + "Exception occurred in retrieving GitHub repositories for user accounts: " + Arrays.toString(AppConfig.getGithubAccountsToScan().toArray(new String[0])));
+            log.error(consoleTag + "Exception occurred in retrieving GitHub repositories for user accounts: " + Arrays.toString(AppConfig.getGithubAccountsToScan().toArray(new String[0])),e);
             throw e;
         }
 
         //Submit scanning task to thread pool
         ExecutorService executorService = Executors.newFixedThreadPool(AppConfig.getRepoWorkerThreadCount());
-        for(RepoInfo repoInfo : repoInfoList) {
-            String newConsoleTag = consoleTag + "[User:" + repoInfo.getUser() + ",Repo:" + repoInfo.getRepositoryUrl() + ",Tag:" + repoInfo.getTagName() +"] ";
-            if(!storage.isPresent(repoInfo)) {
-                ConsoleUtil.println(newConsoleTag + "[Adding] Adding repo to scanning pool");
-                Runnable runnable = new GitRepoScannerTask(newConsoleTag, gitTempFolder, repoInfo, gitRepoDownloader, buildConfigLocator, mavenArtifactInfoGenerator, storage);
+        for(Repo repo : repoList) {
+            String newConsoleTag = consoleTag + "[User:" + repo.getUser() + ",Repo:" + repo.getRepositoryUrl() + ",Tag:" + repo.getTagName() +"] ";
+            if(AppConfig.isRescanRepos() || !storage.isRepoPresent(repo)) {
+                log.info(newConsoleTag + "[Adding] Adding repo to scanning pool");
+                Runnable runnable = new GitRepoScannerTask(newConsoleTag, gitTempFolder, repo, gitRepoDownloader, buildConfigLocator, mavenArtifactInfoGenerator, storage);
                 executorService.submit(runnable);
                 //break;
             } else {
-                ConsoleUtil.printInYellow(newConsoleTag + "[Skipping] Repo is already present in storage.");
+                log.warn(newConsoleTag + "[Skipping] Repo is already present in storage.");
             }
         }
         executorService.shutdown();
 
         //Wait for completion of all the threads
-        ConsoleUtil.println(consoleTag + "Started waiting for thread completion.");
+        log.info(consoleTag + "Started waiting for thread completion.");
         try {
             executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
             throw e;
         }
 
         //Do cleanup and storage release
-        ConsoleUtil.println(consoleTag + "All threads complete. Clean up tasks started.");
+        log.info(consoleTag + "All threads complete. Clean up tasks started.");
         FileUtils.deleteDirectory(gitTempFolder);
-        storage.close();
     }
 }

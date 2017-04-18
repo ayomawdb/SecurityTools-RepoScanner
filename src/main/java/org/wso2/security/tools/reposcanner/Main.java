@@ -2,6 +2,7 @@ package org.wso2.security.tools.reposcanner;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import org.apache.log4j.Logger;
 import org.wso2.security.tools.reposcanner.scanner.GitRepoScanner;
 import org.wso2.security.tools.reposcanner.scanner.RepoScanner;
 import org.wso2.security.tools.reposcanner.storage.JDBCStorage;
@@ -11,10 +12,12 @@ import org.wso2.security.tools.reposcanner.storage.Storage;
  * Created by ayoma on 4/14/17.
  */
 public class Main {
-    @Parameter(names = {"-git.oauth2"}, description = "OAuth 2 token used to access GitHub", password = true, order = 1, descriptionKey = "ABC")
+    private static Logger log = Logger.getLogger(Main.class.getName());
+
+    @Parameter(names = {"-git.oauth2"}, description = "OAuth 2 token used to access GitHub", password = true, order = 1)
     private String gitOAuth2Token;
 
-    @Parameter(names = {"-git.users"}, description = "Comma separated list of GitHub user accounts to scan", order = 2, descriptionKey = "ABC")
+    @Parameter(names = {"-git.users"}, description = "Comma separated list of GitHub user accounts to scan", order = 2)
     private String gitUserAccounts;
 
     @Parameter(names = {"-maven.home"}, description = "Maven home (if environment variables are not set)", order = 3)
@@ -59,18 +62,25 @@ public class Main {
     @Parameter(names = {"-threads.artifact"}, description = "Thread count doing artifact level scanning (Example: scan downloaded repository for build information) (Default: 1)", order = 16)
     private int artifactWorkerThreadCount;
 
+    @Parameter(names = {"-rescan"}, description = "Rescan repo-tag combinaions even if they are already indexed. (Default: false)", order = 16)
+    private boolean rescan;
+
     public static void main(String[] args) throws Exception {
         Main main = new Main();
 
-        ConsoleUtil.println("-------------------------------------------------");
-        ConsoleUtil.println("-----                                       -----");
-        ConsoleUtil.println("-----          Repository Scanner           -----");
-        ConsoleUtil.println("-----                                       -----");
-        ConsoleUtil.println("-------------------------------------------------");
-        JCommander jCommander = new JCommander(main, args);
-        jCommander.setProgramName("WSO2 Repo Scanner");
+        log.info("-------------------------------------------------");
+        log.info("-----                                       -----");
+        log.info("-----          Repository Scanner           -----");
+        log.info("-----                                       -----");
+        log.info("-------------------------------------------------");
 
-        //JCommander.newBuilder().addObject(main).build().parse(args);
+        JCommander jCommander = new JCommander(main, args);
+        jCommander.setProgramName("Repo Scanner");
+
+        if(main.help) {
+            jCommander.usage();
+            return;
+        }
 
         if(main.databaseDriver == null || main.databaseDriver.length() == 0) {
             main.databaseDriver = "com.mysql.jdbc.Driver";
@@ -86,11 +96,6 @@ public class Main {
         }
         if(main.storageType == null || main.storageType.length() == 0) {
             main.storageType = "JDBC";
-        }
-
-        if(main.help) {
-            jCommander.usage();
-            return;
         }
 
         main.start(jCommander);
@@ -113,33 +118,40 @@ public class Main {
             AppConfig.setDebug(true);
         }
         AppConfig.setCreateDB(databaseCreate);
+        AppConfig.setRescanRepos(rescan);
+        if(rescan) {
+            log.warn("Full repository re-scan in progress. Scan will take additional time.");
+        }
 
         Storage storage = null;
-        if(storageType == null || storageType.trim().length() == 0 || storageType.equals("JDBC")) {
+        if(storageType.equals("JDBC")) {
             if(databaseDriver == null || databaseUrl == null || databaseUsername ==null || databasePassword == null || databaseHibernateDialect == null) {
-                ConsoleUtil.printInRed("JDBC parameters are not properly set (All -jdbc parameters are required). Terminating...");
+                log.error("JDBC parameters are not properly set (All -jdbc parameters are required). Terminating...");
                 jCommander.usage();
                 return;
             }
             storage = new JDBCStorage(databaseDriver, databaseUrl, databaseUsername, databasePassword.toCharArray(), databaseHibernateDialect);
         } else {
-            ConsoleUtil.printInRed("No valid storage option selected. Terminating...");
+            log.error("No valid storage option selected. Terminating...");
             jCommander.usage();
             return;
         }
 
         if(gitOAuth2Token != null) {
-            RepoScanner scanner = new GitRepoScanner(gitOAuth2Token.toCharArray());
             try {
+                RepoScanner scanner = new GitRepoScanner(gitOAuth2Token.toCharArray());
                 scanner.scan(storage);
-                ConsoleUtil.printInGreen("Scanning complete. Terminating...");
+
+                //Any other scanners should be added here to make sure storage is closed only after all the scanners are complete
+
+                log.info("Scanning complete. Terminating...");
             } catch (Exception e) {
-                ConsoleUtil.printInRed("Exception occured during scanning process. Terminating...");
-                e.printStackTrace();
+                log.fatal("Exception occured during scanning process. Terminating...", e);
+            } finally {
                 storage.close();
             }
         } else {
-            ConsoleUtil.printInRed("No scanning parameters are set. Please use \"-git.oauth2\" parameter to set OAuth credentials to access GitHub account. Terminating...");
+            log.error("No scanning parameters are set. Please use \"-git.oauth2\" parameter to set OAuth credentials to access GitHub account. Terminating...");
             jCommander.usage();
             storage.close();
         }

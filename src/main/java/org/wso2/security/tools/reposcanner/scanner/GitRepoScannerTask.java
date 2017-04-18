@@ -1,16 +1,17 @@
 package org.wso2.security.tools.reposcanner.scanner;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.wso2.security.tools.reposcanner.AppConfig;
-import org.wso2.security.tools.reposcanner.ConsoleUtil;
 import org.wso2.security.tools.reposcanner.artifact.ArtifactInfoGenerator;
 import org.wso2.security.tools.reposcanner.downloader.RepoDownloader;
 import org.wso2.security.tools.reposcanner.locator.BuildConfigLocator;
-import org.wso2.security.tools.reposcanner.pojo.ArtifactInfo;
-import org.wso2.security.tools.reposcanner.pojo.RepoInfo;
+import org.wso2.security.tools.reposcanner.pojo.RepoArtifact;
+import org.wso2.security.tools.reposcanner.pojo.Repo;
 import org.wso2.security.tools.reposcanner.storage.Storage;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -22,17 +23,19 @@ import java.util.concurrent.Future;
  * Created by ayoma on 4/16/17.
  */
 public class GitRepoScannerTask implements Runnable {
+    private static Logger log = Logger.getLogger(GitRepoScanner.class.getName());
+
     private File gitTempFolder;
-    private RepoInfo repoInfo;
+    private Repo repo;
     private RepoDownloader gitRepoDownloader;
     private BuildConfigLocator buildConfigLocator;
     private ArtifactInfoGenerator mavenArtifactInfoGenerator;
     private Storage storage;
     private String consoleTag;
 
-    public GitRepoScannerTask(String consoleTag, File gitTempFolder, RepoInfo repoInfo, RepoDownloader gitRepoDownloader, BuildConfigLocator buildConfigLocator, ArtifactInfoGenerator mavenArtifactInfoGenerator, Storage storage) {
+    public GitRepoScannerTask(String consoleTag, File gitTempFolder, Repo repo, RepoDownloader gitRepoDownloader, BuildConfigLocator buildConfigLocator, ArtifactInfoGenerator mavenArtifactInfoGenerator, Storage storage) {
         this.gitTempFolder = gitTempFolder;
-        this.repoInfo = repoInfo;
+        this.repo = repo;
         this.gitRepoDownloader = gitRepoDownloader;
         this.buildConfigLocator = buildConfigLocator;
         this.mavenArtifactInfoGenerator = mavenArtifactInfoGenerator;
@@ -41,55 +44,66 @@ public class GitRepoScannerTask implements Runnable {
     }
 
     public void run() {
-        try {
-            //Create folder to store files from Github
-            String identifier = repoInfo.getRepositoryName() + "-Tag-" + repoInfo.getTagName();
-            File artifactTempFolder = new File(gitTempFolder.getAbsoluteFile() + File.separator + identifier);
-            artifactTempFolder.mkdir();
-            ConsoleUtil.println(consoleTag + "Temporary folder created at: " + artifactTempFolder.getAbsolutePath());
+        //Create folder to store files from Github
+        String identifier = repo.getRepositoryName() + "-Tag-" + repo.getTagName();
+        File artifactTempFolder = new File(gitTempFolder.getAbsoluteFile() + File.separator + identifier);
+        artifactTempFolder.mkdir();
+        log.info(consoleTag + "Temporary folder created at: " + artifactTempFolder.getAbsolutePath());
 
+        try {
             //Download from GitHub and extract ZIP
-            ConsoleUtil.println(consoleTag + "Downloading started");
-            gitRepoDownloader.downloadRepo(repoInfo, artifactTempFolder);
-            ConsoleUtil.println(consoleTag + "Downloading completed");
+            log.info(consoleTag + "Downloading started");
+            gitRepoDownloader.downloadRepo(repo, artifactTempFolder);
+            log.info(consoleTag + "Downloading completed");
 
             //Locate POM files within the extracted ZIP
-            ConsoleUtil.println(consoleTag + "POM searching started");
+            log.info(consoleTag + "POM searching started");
             List<File> mavenBuildConfigFiles = buildConfigLocator.locate(artifactTempFolder);
-            ConsoleUtil.println(consoleTag + "POM searching completed");
+            log.info(consoleTag + "POM searching completed");
 
             //Execute maven executor plugin on each POM to get Maven ID (groupId, artifactId, packaging, version)
             ExecutorService executorService = Executors.newFixedThreadPool(AppConfig.getArtifactWorkerThreadCount());
-            List<Future<ArtifactInfo>> artifactInfoList = new ArrayList<Future<ArtifactInfo>>();
+            List<Future<RepoArtifact>> artifactInfoList = new ArrayList<Future<RepoArtifact>>();
             for (File mavenBuildConfigFile : mavenBuildConfigFiles) {
-                String newConsoleTag = consoleTag + mavenBuildConfigFile.getCanonicalPath();
+                String path = mavenBuildConfigFile.getAbsolutePath().substring(artifactTempFolder.getAbsolutePath().length(), mavenBuildConfigFile.getAbsolutePath().length());
 
-                ConsoleUtil.println(newConsoleTag + "[Adding] Adding POM for artifact information gathering pool");
-                Callable<ArtifactInfo> callable = new GitRepoScannerArtifactInfoTask(newConsoleTag, mavenArtifactInfoGenerator, repoInfo, artifactTempFolder, mavenBuildConfigFile, storage);
-                Future<ArtifactInfo> futureArtifactInfo = executorService.submit(callable);
-                artifactInfoList.add(futureArtifactInfo);
+                String newConsoleTag = consoleTag + "[" + path + "] ";
+
+                boolean scanArtifact = true;
+                if(AppConfig.isRescanRepos() && storage.isArtifactPresent(repo, path)) {
+                    scanArtifact = false;
+                }
+                if(scanArtifact) {
+                    log.info(newConsoleTag + "[Adding] Adding POM for artifact information gathering pool");
+                    Callable<RepoArtifact> callable = new GitRepoScannerArtifactInfoTask(newConsoleTag, mavenArtifactInfoGenerator, repo, artifactTempFolder, mavenBuildConfigFile, storage);
+                    Future<RepoArtifact> futureArtifactInfo = executorService.submit(callable);
+                    artifactInfoList.add(futureArtifactInfo);
+                } else {
+                    log.warn(newConsoleTag + "[Skipping] Artifact is already present in storage.");
+                }
             }
             executorService.shutdown();
 
             //Persist artifact info as threads complete
-            ConsoleUtil.println(consoleTag + "Started waiting for thread completion.");
-            for (Future<ArtifactInfo> artifactInfoFuture : artifactInfoList) {
-                ArtifactInfo artifactInfo = artifactInfoFuture.get();
-                if(artifactInfo != null) {
-                    storage.persist(artifactInfo);
+            log.info(consoleTag + "Started waiting for thread completion.");
+            for (Future<RepoArtifact> artifactInfoFuture : artifactInfoList) {
+                RepoArtifact repoArtifactInfo = artifactInfoFuture.get();
+                if(repoArtifactInfo != null) {
+                    storage.persist(repoArtifactInfo);
                 }
             }
 
             //Do cleanup and storage release
-            ConsoleUtil.println(consoleTag + "All threads complete. Clean up tasks started.");
-            ConsoleUtil.println(consoleTag + "Deleting: "  + artifactTempFolder.getAbsolutePath());
+            log.info(consoleTag + "All threads complete. Clean up tasks started.");
+            log.info(consoleTag + "Deleting: "  + artifactTempFolder.getAbsolutePath());
             FileUtils.deleteDirectory(artifactTempFolder);
         } catch (Exception e) {
-            String identifier = repoInfo.getRepositoryName() + "-Tag-" + repoInfo.getTagName();
-            ConsoleUtil.printInRed(consoleTag + "Git repository scanning failed: " + identifier);
-            if(AppConfig.isVerbose()) {
-                e.printStackTrace();
+            try {
+                FileUtils.deleteDirectory(artifactTempFolder);
+            } catch (IOException e1) {
+                log.warn( "Exception in removing temp folder: " + artifactTempFolder.getAbsolutePath());
             }
+            log.error(consoleTag + "Git repository scanning failed: " + identifier, e);
         }
     }
 }

@@ -1,17 +1,16 @@
 package org.wso2.security.tools.reposcanner.storage;
 
-import org.wso2.security.tools.reposcanner.pojo.ArtifactInfo;
-import org.wso2.security.tools.reposcanner.pojo.ErrorInfo;
-import org.wso2.security.tools.reposcanner.pojo.RepoInfo;
-
-import java.sql.SQLException;
+import org.wso2.security.tools.reposcanner.pojo.RepoArtifact;
+import org.wso2.security.tools.reposcanner.pojo.RepoError;
+import org.wso2.security.tools.reposcanner.pojo.Repo;
 
 /**
  * Created by ayoma on 4/13/17.
  */
 public interface Storage {
-    public boolean isPresent(RepoInfo repoInfo) throws Exception;
-    public boolean persist(ArtifactInfo artifactInfo) throws Exception;
-    public boolean persistError(ErrorInfo errorInfo) throws Exception;
+    public boolean isRepoPresent(Repo repo) throws Exception;
+    public boolean isArtifactPresent(Repo repo, String path) throws Exception;
+    public boolean persist(RepoArtifact repoArtifactInfo) throws Exception;
+    public boolean persistError(RepoError repoError) throws Exception;
     public void close();
 }

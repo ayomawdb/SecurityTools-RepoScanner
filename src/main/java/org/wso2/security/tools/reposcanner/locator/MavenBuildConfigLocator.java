@@ -18,7 +18,7 @@ public class MavenBuildConfigLocator implements BuildConfigLocator{
 
         Collection<File> sourceFiles = FileUtils.listFiles(sourceFolder, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
         for (File file : sourceFiles) {
-            if(file.getAbsolutePath().toLowerCase().endsWith("/pom.xml")) {
+            if(file.getAbsolutePath().toLowerCase().endsWith(File.separator + "pom.xml")) {
                 fileCollection.add(file);
             }
         }

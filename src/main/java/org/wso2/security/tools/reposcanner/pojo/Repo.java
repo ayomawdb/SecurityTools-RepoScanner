@@ -10,8 +10,8 @@ import java.util.Date;
  * Created by ayoma on 4/11/17.
  */
 @Entity
-@Table(name = "REPO_INFO")
-public class RepoInfo {
+@Table(name = "REPO", indexes = { @Index(columnList = "REPO_NAME,TAG_NAME", name = "repoName_tagName_idx") })
+public class Repo {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy=GenerationType.AUTO, generator="repo_info_seq_gen")
@@ -41,10 +41,10 @@ public class RepoInfo {
     @Column(name = "ADDED_DATE")
     private Date addedDate;
 
-    public RepoInfo() {
+    public Repo() {
     }
 
-    public RepoInfo(Repository repository, RepositoryTag repositoryTag) {
+    public Repo(Repository repository, RepositoryTag repositoryTag) {
         this.repoType=RepoType.GIT;
         this.user = repository.getOwner().getLogin();
         this.repositoryName = repository.getName();
@@ -54,12 +54,12 @@ public class RepoInfo {
         this.addedDate = new Date();
     }
 
-    public String getUser() {
-        return user;
+    public Long getId() {
+        return id;
     }
 
-    public void setUser(String user) {
-        this.user = user;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public RepoType getRepoType() {
@@ -68,6 +68,14 @@ public class RepoInfo {
 
     public void setRepoType(RepoType repoType) {
         this.repoType = repoType;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
     }
 
     public String getRepositoryName() {
@@ -102,34 +110,25 @@ public class RepoInfo {
         this.tagZip = tagZip;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        RepoInfo gitInfo = (RepoInfo) o;
-
-        if (!repositoryName.equals(gitInfo.repositoryName)) return false;
-        if (!repositoryUrl.equals(gitInfo.repositoryUrl)) return false;
-        return tagName.equals(gitInfo.tagName);
-
+    public Date getAddedDate() {
+        return addedDate;
     }
 
-    @Override
-    public int hashCode() {
-        int result = repositoryName.hashCode();
-        result = 31 * result + repositoryUrl.hashCode();
-        result = 31 * result + tagName.hashCode();
-        return result;
+    public void setAddedDate(Date addedDate) {
+        this.addedDate = addedDate;
     }
 
     @Override
     public String toString() {
-        return "GitInfo{" +
-                "repositoryName='" + repositoryName + '\'' +
+        return "Repo{" +
+                "id=" + id +
+                ", repoType=" + repoType +
+                ", user='" + user + '\'' +
+                ", repositoryName='" + repositoryName + '\'' +
                 ", repositoryUrl='" + repositoryUrl + '\'' +
                 ", tagName='" + tagName + '\'' +
                 ", tagZip='" + tagZip + '\'' +
+                ", addedDate=" + addedDate +
                 '}';
     }
 }

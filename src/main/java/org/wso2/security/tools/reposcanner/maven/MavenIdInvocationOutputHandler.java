@@ -1,8 +1,8 @@
 package org.wso2.security.tools.reposcanner.maven;
 
+import org.apache.log4j.Logger;
 import org.apache.maven.shared.invoker.InvocationOutputHandler;
 import org.wso2.security.tools.reposcanner.AppConfig;
-import org.wso2.security.tools.reposcanner.ConsoleUtil;
 
 import java.util.List;
 
@@ -10,6 +10,8 @@ import java.util.List;
  * Created by ayoma on 4/15/17.
  */
 public class MavenIdInvocationOutputHandler implements InvocationOutputHandler {
+    private static Logger log = Logger.getLogger(MavenIdInvocationOutputHandler.class.getName());
+
     private String mavenId;
     private String consoleTag;
 
@@ -19,7 +21,7 @@ public class MavenIdInvocationOutputHandler implements InvocationOutputHandler {
 
     public void consumeLine(String s) {
         if(AppConfig.isDebug()) {
-            ConsoleUtil.printDebug(consoleTag + "[MavenInvocation] " + s);
+            log.debug(consoleTag + "[MavenInvocation] " + s);
         }
 
         List<String> mavenOutputSkipPatterns = AppConfig.getMavenOutputSkipPatterns();
@@ -29,7 +31,7 @@ public class MavenIdInvocationOutputHandler implements InvocationOutputHandler {
                 isConsumable = false;
             }
         }
-        if(isConsumable && s.contains(":")) {
+        if(isConsumable && !(s.contains("null object") || s.contains("invalid expression"))) {
             mavenId = s;
         }
     }

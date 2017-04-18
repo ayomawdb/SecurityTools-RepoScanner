@@ -7,8 +7,8 @@ import java.util.Date;
  * Created by ayoma on 4/11/17.
  */
 @Entity
-@Table(name = "ARTIFACT_INFO")
-public class ArtifactInfo {
+@Table(name = "REPO_ARTIFACT", indexes = { @Index(columnList = "PATH", name = "artifact_path_idx") })
+public class RepoArtifact {
     @Id
     @Column(name = "ID")
     @GeneratedValue(strategy=GenerationType.AUTO, generator="artifact_info_seq_gen")
@@ -30,23 +30,43 @@ public class ArtifactInfo {
     @Column(name = "VERSION", nullable = false)
     private String version;
 
+    @Column(name = "FINAL_NAME")
+    private String finalName;
+
     @ManyToOne
     @JoinColumn(name = "REPO_INFO_ID", nullable = false)
-    private RepoInfo repoInfo;
+    private Repo repo;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "ADDED_DATE")
     private Date addedDate;
 
-    public ArtifactInfo(RepoInfo repoInfo, String path, String mavenId) {
+    public RepoArtifact(Repo repo, String path, String mavenId, String finalName) {
         String[] mavenIdParts = mavenId.split(":");
         this.path = path;
         this.groupId = mavenIdParts[0];
         this.artifactId = mavenIdParts[1];
         this.packaging = mavenIdParts[2];
         this.version = mavenIdParts[3];
-        this.repoInfo = repoInfo;
+        this.repo = repo;
         this.addedDate = new Date();
+        this.finalName = finalName;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     public String getGroupId() {
@@ -81,53 +101,42 @@ public class ArtifactInfo {
         this.version = version;
     }
 
-    public String getPath() {
-        return path;
+    public String getFinalName() {
+        return finalName;
     }
 
-    public void setPath(String path) {
-        this.path = path;
+    public void setFinalName(String finalName) {
+        this.finalName = finalName;
     }
 
-    public RepoInfo getRepoInfo() {
-        return repoInfo;
+    public Repo getRepo() {
+        return repo;
     }
 
-    public void setRepoInfo(RepoInfo repoInfo) {
-        this.repoInfo = repoInfo;
+    public void setRepo(Repo repo) {
+        this.repo = repo;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ArtifactInfo mavenInfo = (ArtifactInfo) o;
-
-        if (!groupId.equals(mavenInfo.groupId)) return false;
-        if (!artifactId.equals(mavenInfo.artifactId)) return false;
-        if (!packaging.equals(mavenInfo.packaging)) return false;
-        return version.equals(mavenInfo.version);
-
+    public Date getAddedDate() {
+        return addedDate;
     }
 
-    @Override
-    public int hashCode() {
-        int result = groupId.hashCode();
-        result = 31 * result + artifactId.hashCode();
-        result = 31 * result + packaging.hashCode();
-        result = 31 * result + version.hashCode();
-        return result;
+    public void setAddedDate(Date addedDate) {
+        this.addedDate = addedDate;
     }
 
     @Override
     public String toString() {
-        return "ArtifactInfo{" +
-                "path='" + path + '\'' +
+        return "RepoArtifact{" +
+                "id=" + id +
+                ", path='" + path + '\'' +
                 ", groupId='" + groupId + '\'' +
                 ", artifactId='" + artifactId + '\'' +
                 ", packaging='" + packaging + '\'' +
                 ", version='" + version + '\'' +
+                ", finalName='" + finalName + '\'' +
+                ", repo=" + repo +
+                ", addedDate=" + addedDate +
                 '}';
     }
 }

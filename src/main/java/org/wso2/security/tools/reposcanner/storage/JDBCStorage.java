@@ -1,5 +1,6 @@
 package org.wso2.security.tools.reposcanner.storage;
 
+import org.apache.log4j.Logger;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -7,10 +8,9 @@ import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.wso2.security.tools.reposcanner.AppConfig;
-import org.wso2.security.tools.reposcanner.ConsoleUtil;
-import org.wso2.security.tools.reposcanner.pojo.ArtifactInfo;
-import org.wso2.security.tools.reposcanner.pojo.ErrorInfo;
-import org.wso2.security.tools.reposcanner.pojo.RepoInfo;
+import org.wso2.security.tools.reposcanner.pojo.RepoArtifact;
+import org.wso2.security.tools.reposcanner.pojo.RepoError;
+import org.wso2.security.tools.reposcanner.pojo.Repo;
 
 import java.util.List;
 import java.util.Properties;
@@ -19,6 +19,7 @@ import java.util.Properties;
  * Created by ayoma on 4/13/17.
  */
 public class JDBCStorage implements Storage {
+    private static Logger log = Logger.getLogger(JDBCStorage.class.getName());
     private static SessionFactory sessionFactory;
 
     public JDBCStorage(String driverName, String connectionUri, String username, char[] password, String hibernateDialect) {
@@ -42,9 +43,9 @@ public class JDBCStorage implements Storage {
             Configuration configuration = new Configuration();
             configuration.addProperties(properties);
 
-            configuration.addAnnotatedClass(RepoInfo.class);
-            configuration.addAnnotatedClass(ArtifactInfo.class);
-            configuration.addAnnotatedClass(ErrorInfo.class);
+            configuration.addAnnotatedClass(Repo.class);
+            configuration.addAnnotatedClass(RepoArtifact.class);
+            configuration.addAnnotatedClass(RepoError.class);
 
             sessionFactory = configuration.buildSessionFactory();
 
@@ -52,41 +53,76 @@ public class JDBCStorage implements Storage {
                 password[i] = ' ';
             }
         }catch (Throwable ex) {
-            System.err.println("Failed to create sessionFactory object." + ex);
-            throw new ExceptionInInitializerError(ex);
+            log.fatal("Failed to create sessionFactory object. Terminating..." + ex);
+            System.exit(1);
         }
     }
 
-    public synchronized boolean isPresent(RepoInfo repoInfo) throws Exception {
-        return !getRepoInfoList(repoInfo.getRepositoryName(), repoInfo.getTagName()).isEmpty();
+    public synchronized boolean isRepoPresent(Repo repo) throws Exception {
+        return !getRepoInfoList(repo.getUser(), repo.getRepositoryName(), repo.getTagName()).isEmpty();
     }
 
-    public synchronized List<RepoInfo> getRepoInfoList(String repositoryName, String tagName) throws Exception {
+    @Override
+    public synchronized boolean isArtifactPresent(Repo repo, String path) throws Exception {
+        if(isRepoPresent(repo)) {
+            List<Repo> repoList = getRepoInfoList(repo.getUser(), repo.getRepositoryName(), repo.getTagName());
+            repo = repoList.get(0);
+
+            Session session = sessionFactory.openSession();
+            List results = null;
+            try {
+                String hql = "FROM org.wso2.security.tools.reposcanner.pojo.RepoArtifact A WHERE A.repoInfo = :repoInfo AND A.path = :path";
+                Query query = session.createQuery(hql);
+                query.setParameter("repoInfo", repo.getId());
+                query.setParameter("path", path);
+                results = query.list();
+                if(results.size() > 1) {
+                    log.warn("[Unexpected] Unexpected condition. Repo Info "+ repo.getId() + ", Path \"" + path +"\" found multiple times");
+                }
+            } catch (Exception e) {
+                throw e;
+            } finally {
+                session.close();
+            }
+            return !results.isEmpty();
+        } else {
+            return false;
+        }
+    }
+
+    private synchronized List<Repo> getRepoInfoList(String user, String repositoryName, String tagName) throws Exception {
         Session session = sessionFactory.openSession();
-        String hql = "FROM org.wso2.security.tools.reposcanner.pojo.RepoInfo R WHERE R.repositoryName = :repositoryName AND R.tagName = :tagName";
-        Query query = session.createQuery(hql);
-        query.setParameter("repositoryName", repositoryName);
-        query.setParameter("tagName", tagName);
-        List results = query.list();
-        if(results.size() > 1) {
-            ConsoleUtil.printInYellow("[Unexpected] Unexpected condition. Repo Name "+ repositoryName + ", Tag " + tagName +" found multiple times");
+        List results = null;
+        try {
+            String hql = "FROM org.wso2.security.tools.reposcanner.pojo.Repo R WHERE R.repositoryName = :repositoryName AND R.tagName = :tagName AND R.user = :user";
+            Query query = session.createQuery(hql);
+            query.setParameter("repositoryName", repositoryName);
+            query.setParameter("tagName", tagName);
+            query.setParameter("user", user);
+            results = query.list();
+            if (results.size() > 1) {
+                log.warn("[Unexpected] Unexpected condition. User: " + user + ", Repo Name:" + repositoryName + ", Tag:" + tagName + " found multiple times");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            session.close();
         }
-        session.close();
         return results;
     }
 
-    public synchronized boolean persist(ArtifactInfo artifactInfo) throws Exception {
+    public synchronized boolean persist(RepoArtifact repoArtifactInfo) throws Exception {
         Session session = sessionFactory.openSession();
         Transaction transaction = session.beginTransaction();
 
         try {
-            List<RepoInfo> repoInfoList = getRepoInfoList(artifactInfo.getRepoInfo().getRepositoryName(), artifactInfo.getRepoInfo().getTagName());
-            if (repoInfoList.isEmpty()) {
-                session.save(artifactInfo.getRepoInfo());
+            List<Repo> repoList = getRepoInfoList(repoArtifactInfo.getRepo().getUser(), repoArtifactInfo.getRepo().getRepositoryName(), repoArtifactInfo.getRepo().getTagName());
+            if (repoList.isEmpty()) {
+                session.save(repoArtifactInfo.getRepo());
             } else {
-                artifactInfo.setRepoInfo(repoInfoList.get(0));
+                repoArtifactInfo.setRepo(repoList.get(0));
             }
-            session.save(artifactInfo);
+            session.save(repoArtifactInfo);
             transaction.commit();
         } catch (Exception e) {
             transaction.rollback();
@@ -98,18 +134,18 @@ public class JDBCStorage implements Storage {
     }
 
     @Override
-    public synchronized boolean persistError(ErrorInfo errorInfo) throws Exception {
+    public synchronized boolean persistError(RepoError repoError) throws Exception {
         Session session = sessionFactory.openSession();
         Transaction transaction = session.beginTransaction();
 
         try {
-            List<RepoInfo> repoInfoList = getRepoInfoList(errorInfo.getRepoInfo().getRepositoryName(), errorInfo.getRepoInfo().getTagName());
-            if (repoInfoList.isEmpty()) {
-                session.save(errorInfo.getRepoInfo());
+            List<Repo> repoList = getRepoInfoList(repoError.getRepo().getUser(), repoError.getRepo().getRepositoryName(), repoError.getRepo().getTagName());
+            if (repoList.isEmpty()) {
+                session.save(repoError.getRepo());
             } else {
-                errorInfo.setRepoInfo(repoInfoList.get(0));
+                repoError.setRepo(repoList.get(0));
             }
-            session.save(errorInfo);
+            session.save(repoError);
             transaction.commit();
         } catch (Exception e) {
             transaction.rollback();

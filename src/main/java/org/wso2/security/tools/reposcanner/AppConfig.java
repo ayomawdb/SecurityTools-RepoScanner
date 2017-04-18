@@ -10,6 +10,7 @@ public class AppConfig {
     private static boolean verbose;
     private static boolean debug;
     private static boolean createDB;
+    private static boolean rescanRepos;
     private static String mavenHome;
     private static List<String> githubAccountsToScan;
     private static List<String> mavenOutputSkipPatterns;
@@ -24,6 +25,30 @@ public class AppConfig {
 
     public static void setVerbose(boolean verbose) {
         AppConfig.verbose = verbose;
+    }
+
+    public static boolean isDebug() {
+        return debug;
+    }
+
+    public static void setDebug(boolean debug) {
+        AppConfig.debug = debug;
+    }
+
+    public static boolean isCreateDB() {
+        return createDB;
+    }
+
+    public static void setCreateDB(boolean createDB) {
+        AppConfig.createDB = createDB;
+    }
+
+    public static boolean isRescanRepos() {
+        return rescanRepos;
+    }
+
+    public static void setRescanRepos(boolean rescanRepos) {
+        AppConfig.rescanRepos = rescanRepos;
     }
 
     public static String getMavenHome() {
@@ -42,26 +67,12 @@ public class AppConfig {
         AppConfig.githubAccountsToScan = githubAccountsToScan;
     }
 
-    public static void addGithubAccountsToScan(String githubAccountToScan) {
-        if(AppConfig.githubAccountsToScan == null) {
-            AppConfig.githubAccountsToScan = new ArrayList<String>();
-        }
-        AppConfig.githubAccountsToScan.add(githubAccountToScan);
-    }
-
     public static List<String> getMavenOutputSkipPatterns() {
         return mavenOutputSkipPatterns;
     }
 
     public static void setMavenOutputSkipPatterns(List<String> mavenOutputSkipPatterns) {
         AppConfig.mavenOutputSkipPatterns = mavenOutputSkipPatterns;
-    }
-
-    public static void addMavenSkipPatterns(String mavenSkipPattern) {
-        if(AppConfig.mavenOutputSkipPatterns == null) {
-            AppConfig.mavenOutputSkipPatterns = new ArrayList<String>();
-        }
-        AppConfig.mavenOutputSkipPatterns.add(mavenSkipPattern);
     }
 
     public static int getRepoWorkerThreadCount() {
@@ -88,19 +99,17 @@ public class AppConfig {
         AppConfig.tagWorkerThreadCount = tagWorkerThreadCount;
     }
 
-    public static boolean isDebug() {
-        return debug;
+    public static void addMavenSkipPatterns(String mavenOutputSkipPattern) {
+        if(mavenOutputSkipPatterns == null) {
+            mavenOutputSkipPatterns = new ArrayList<String>();
+        }
+        mavenOutputSkipPatterns.add(mavenOutputSkipPattern);
     }
 
-    public static void setDebug(boolean debug) {
-        AppConfig.debug = debug;
-    }
-
-    public static boolean isCreateDB() {
-        return createDB;
-    }
-
-    public static void setCreateDB(boolean createDB) {
-        AppConfig.createDB = createDB;
+    public static void addGithubAccountsToScan(String githubAccountToScan) {
+        if(githubAccountsToScan == null) {
+            githubAccountsToScan = new ArrayList<String>();
+        }
+        githubAccountsToScan.add(githubAccountToScan);
     }
 }

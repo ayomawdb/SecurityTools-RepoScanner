@@ -1,18 +1,15 @@
 package org.wso2.security.tools.reposcanner.repository;
 
+import org.apache.log4j.Logger;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryTag;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.wso2.security.tools.reposcanner.AppConfig;
-import org.wso2.security.tools.reposcanner.ConsoleUtil;
-import org.wso2.security.tools.reposcanner.pojo.RepoInfo;
+import org.wso2.security.tools.reposcanner.pojo.Repo;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +18,8 @@ import java.util.concurrent.TimeUnit;
  * Created by ayoma on 4/15/17.
  */
 public class GitRepoInfoGenerator implements  RepoInfoGenerator {
+    private static Logger log = Logger.getLogger(GitRepoInfoGenerator.class.getName());
+
     private GitHubClient client;
 
     @Deprecated
@@ -34,7 +33,7 @@ public class GitRepoInfoGenerator implements  RepoInfoGenerator {
         client.setOAuth2Token(new String(oAuth2Token));
     }
 
-    public List<RepoInfo> getRepoInfoList(String consoleTag, String[] users) throws Exception {
+    public List<Repo> getRepoInfoList(String consoleTag, String[] users) throws Exception {
         List<Repository> repositoryList = getReposByUsers(consoleTag, users);
         Map<Repository, List<RepositoryTag>> repositoryTagMap = getTagsByRepositories(consoleTag, repositoryList);
         return getRepoInfoByRepositoryTagMap(consoleTag, repositoryTagMap);
@@ -46,17 +45,17 @@ public class GitRepoInfoGenerator implements  RepoInfoGenerator {
         RepositoryService service = new RepositoryService(client);
 
         for(String user : users) {
-            ConsoleUtil.println(consoleTag + "Fetching repositories for GitHub user account: " + user);
+            log.info(consoleTag + "Fetching repositories for GitHub user account: " + user);
             List<Repository> userRepositoryList = service.getRepositories(user);
             repositoryList.addAll(userRepositoryList);
-            ConsoleUtil.println(consoleTag + userRepositoryList.size() + " repositories found for user account: " + user);
+            log.info(consoleTag + userRepositoryList.size() + " repositories found for user account: " + user);
         }
 
         return repositoryList;
     }
 
     private Map<Repository, List<RepositoryTag>> getTagsByRepositories(String consoleTag, List<Repository> repositoryList) throws IOException, InterruptedException {
-        Map<Repository, List<RepositoryTag>> repositoryTagList = new HashMap<Repository, List<RepositoryTag>>();
+        Map<Repository, List<RepositoryTag>> repositoryTagList = new LinkedHashMap<Repository, List<RepositoryTag>>();
 
         RepositoryService service = new RepositoryService(client);
 
@@ -68,42 +67,41 @@ public class GitRepoInfoGenerator implements  RepoInfoGenerator {
         }
         executorService.shutdown();
 
-        ConsoleUtil.println(consoleTag + "Started waiting for thread completion.");
+        log.info(consoleTag + "Started waiting for thread completion.");
         try {
             executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
             throw e;
         }
         //Do cleanup and storage release
-        ConsoleUtil.println(consoleTag + "All threads complete. Clean up tasks started.");
+        log.info(consoleTag + "All threads complete. Clean up tasks started.");
 
         return repositoryTagList;
     }
 
-    private List<RepoInfo> getRepoInfoByRepositoryTagMap(String consoleTag, Map<Repository, List<RepositoryTag>> repositoryTagMap) {
-        List<RepoInfo> repoInfoList = new ArrayList<RepoInfo>();
+    private List<Repo> getRepoInfoByRepositoryTagMap(String consoleTag, Map<Repository, List<RepositoryTag>> repositoryTagMap) {
+        List<Repo> repoList = new ArrayList<Repo>();
         for (Repository repository : repositoryTagMap.keySet()) {
             List<RepositoryTag> repositoryTagList = repositoryTagMap.get(repository);
             if(AppConfig.isVerbose()) {
-                ConsoleUtil.println(consoleTag + "Repository    : " + repository.getName());
-                ConsoleUtil.println(consoleTag + "   OwnerLogin : " + repository.getOwner().getLogin());
-                ConsoleUtil.println(consoleTag + "   Clone URL  : " + repository.getCloneUrl());
-                ConsoleUtil.println(consoleTag + "   Git URL    : " + repository.getGitUrl());
-                ConsoleUtil.println(consoleTag + "   URL        : " + repository.getUrl());
-                ConsoleUtil.println(consoleTag + "   HTML IRL   : " + repository.getHtmlUrl());
-                ConsoleUtil.println(consoleTag + "   Master Br  : " + repository.getMasterBranch());
+                log.debug(consoleTag + "Repository    : " + repository.getName());
+                log.debug(consoleTag + "   OwnerLogin : " + repository.getOwner().getLogin());
+                log.debug(consoleTag + "   Clone URL  : " + repository.getCloneUrl());
+                log.debug(consoleTag + "   Git URL    : " + repository.getGitUrl());
+                log.debug(consoleTag + "   URL        : " + repository.getUrl());
+                log.debug(consoleTag + "   HTML IRL   : " + repository.getHtmlUrl());
+                log.debug(consoleTag + "   Master Br  : " + repository.getMasterBranch());
             }
             for (RepositoryTag repositoryTag : repositoryTagList) {
                 if(AppConfig.isVerbose()) {
-                    ConsoleUtil.println(consoleTag + "      Tag       : " + repositoryTag.getName());
-                    ConsoleUtil.println(consoleTag + "      Tar       : " + repositoryTag.getTarballUrl());
-                    ConsoleUtil.println(consoleTag + "      Zip       : " + repositoryTag.getZipballUrl());
+                    log.debug(consoleTag + "      Tag       : " + repositoryTag.getName());
+                    log.debug(consoleTag + "      Tar       : " + repositoryTag.getTarballUrl());
+                    log.debug(consoleTag + "      Zip       : " + repositoryTag.getZipballUrl());
                 }
-                RepoInfo RepoInfo = new RepoInfo(repository, repositoryTag);
-                repoInfoList.add(RepoInfo);
+                Repo Repo = new Repo(repository, repositoryTag);
+                repoList.add(Repo);
             }
         }
-        return repoInfoList;
+        return repoList;
     }
 }
