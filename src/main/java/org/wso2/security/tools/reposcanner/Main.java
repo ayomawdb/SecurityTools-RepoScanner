@@ -3,7 +3,7 @@ package org.wso2.security.tools.reposcanner;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import org.apache.log4j.Logger;
-import org.wso2.security.tools.reposcanner.scanner.GitRepoScanner;
+import org.wso2.security.tools.reposcanner.scanner.GitHubRepoScanner;
 import org.wso2.security.tools.reposcanner.scanner.RepoScanner;
 import org.wso2.security.tools.reposcanner.storage.JDBCStorage;
 import org.wso2.security.tools.reposcanner.storage.Storage;
@@ -14,7 +14,7 @@ import org.wso2.security.tools.reposcanner.storage.Storage;
 public class Main {
     private static Logger log = Logger.getLogger(Main.class.getName());
 
-    @Parameter(names = {"-git.oauth2"}, description = "OAuth 2 token used to access GitHub", password = true, order = 1)
+    @Parameter(names = {"-git.oauth2"}, description = "OAuth token used to access GitHub", password = true, order = 1)
     private String gitOAuth2Token;
 
     @Parameter(names = {"-git.users"}, description = "Comma separated list of GitHub user accounts to scan", order = 2)
@@ -53,15 +53,6 @@ public class Main {
     @Parameter(names = {"-jdbc.create"}, description = "Drop and create JDBC tables", order = 13)
     private boolean databaseCreate;
 
-    @Parameter(names = {"-threads.tag"}, description = "Thread count used to fetch tag information for each repository (Default: 20)", order = 14)
-    private int tagWorkerThreadCount;
-
-    @Parameter(names = {"-threads.repo"}, description = "Thread count doing repository scanning (Example: scan each tag of each repository) (Default: 1)", order = 15)
-    private int repoWorkerThreadCount;
-
-    @Parameter(names = {"-threads.artifact"}, description = "Thread count doing artifact level scanning (Example: scan downloaded repository for build information) (Default: 1)", order = 16)
-    private int artifactWorkerThreadCount;
-
     @Parameter(names = {"-rescan"}, description = "Rescan repo-tag combinaions even if they are already indexed. (Default: false)", order = 16)
     private boolean rescan;
 
@@ -77,24 +68,24 @@ public class Main {
         JCommander jCommander = new JCommander(main, args);
         jCommander.setProgramName("Repo Scanner");
 
-        if(main.help) {
+        if (main.help) {
             jCommander.usage();
             return;
         }
 
-        if(main.databaseDriver == null || main.databaseDriver.length() == 0) {
+        if (main.databaseDriver == null || main.databaseDriver.length() == 0) {
             main.databaseDriver = "com.mysql.jdbc.Driver";
         }
-        if(main.databaseUrl == null || main.databaseUrl.length() == 0) {
+        if (main.databaseUrl == null || main.databaseUrl.length() == 0) {
             main.databaseUrl = "jdbc:mysql://localhost/RepoScanner";
         }
-        if(main.databaseUsername == null || main.databaseUsername.length() == 0) {
+        if (main.databaseUsername == null || main.databaseUsername.length() == 0) {
             main.databaseUsername = "root";
         }
-        if(main.databaseHibernateDialect == null || main.databaseHibernateDialect.length() == 0) {
+        if (main.databaseHibernateDialect == null || main.databaseHibernateDialect.length() == 0) {
             main.databaseHibernateDialect = "org.hibernate.dialect.MySQLDialect";
         }
-        if(main.storageType == null || main.storageType.length() == 0) {
+        if (main.storageType == null || main.storageType.length() == 0) {
             main.storageType = "JDBC";
         }
 
@@ -102,30 +93,28 @@ public class Main {
     }
 
     public void start(JCommander jCommander) {
-        AppConfig.addMavenSkipPatterns("[");
-        AppConfig.addMavenSkipPatterns("Download");
-
-        if(gitUserAccounts != null) {
+        if (gitUserAccounts != null) {
             for (String user : gitUserAccounts.split(",")) {
-                AppConfig.addGithubAccountsToScan(user);
+                AppConfig.addGithubAccount(user);
             }
         }
 
         AppConfig.setMavenHome(mavenHome);
         AppConfig.setVerbose(verbose);
-        if(debug) {
+        if (debug) {
             AppConfig.setVerbose(true);
             AppConfig.setDebug(true);
         }
         AppConfig.setCreateDB(databaseCreate);
         AppConfig.setRescanRepos(rescan);
-        if(rescan) {
+
+        if (rescan) {
             log.warn("Full repository re-scan in progress. Scan will take additional time.");
         }
 
         Storage storage = null;
-        if(storageType.equals("JDBC")) {
-            if(databaseDriver == null || databaseUrl == null || databaseUsername ==null || databasePassword == null || databaseHibernateDialect == null) {
+        if (storageType.equals("JDBC")) {
+            if (databaseDriver == null || databaseUrl == null || databaseUsername == null || databasePassword == null || databaseHibernateDialect == null) {
                 log.error("JDBC parameters are not properly set (All -jdbc parameters are required). Terminating...");
                 jCommander.usage();
                 return;
@@ -137,9 +126,9 @@ public class Main {
             return;
         }
 
-        if(gitOAuth2Token != null) {
+        if (gitOAuth2Token != null) {
             try {
-                RepoScanner scanner = new GitRepoScanner(gitOAuth2Token.toCharArray());
+                RepoScanner scanner = new GitHubRepoScanner(gitOAuth2Token.toCharArray());
                 scanner.scan(storage);
 
                 //Any other scanners should be added here to make sure storage is closed only after all the scanners are complete

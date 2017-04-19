@@ -1,4 +1,4 @@
-package org.wso2.security.tools.reposcanner.pojo;
+package org.wso2.security.tools.reposcanner.entiry;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -7,12 +7,12 @@ import java.util.Date;
  * Created by ayoma on 4/11/17.
  */
 @Entity
-@Table(name = "REPO_ARTIFACT", indexes = { @Index(columnList = "PATH", name = "artifact_path_idx") })
+@Table(name = "REPO_ARTIFACT", indexes = {@Index(columnList = "PATH", name = "artifact_path_idx")})
 public class RepoArtifact {
     @Id
     @Column(name = "ID")
-    @GeneratedValue(strategy=GenerationType.AUTO, generator="artifact_info_seq_gen")
-    @SequenceGenerator(name="artifact_info_seq_gen", sequenceName="ARTIFACT_INFO_SEQ")
+    @GeneratedValue(strategy = GenerationType.AUTO, generator = "artifact_info_seq_gen")
+    @SequenceGenerator(name = "artifact_info_seq_gen", sequenceName = "ARTIFACT_INFO_SEQ")
     private Long id;
 
     @Column(name = "PATH", nullable = false, length = 2048)

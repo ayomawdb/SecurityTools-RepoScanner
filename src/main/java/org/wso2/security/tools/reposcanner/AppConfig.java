@@ -12,12 +12,8 @@ public class AppConfig {
     private static boolean createDB;
     private static boolean rescanRepos;
     private static String mavenHome;
-    private static List<String> githubAccountsToScan;
+    private static List<String> githubAccounts;
     private static List<String> mavenOutputSkipPatterns;
-
-    private static int repoWorkerThreadCount = 1;
-    private static int artifactWorkerThreadCount = 1;
-    private static int tagWorkerThreadCount = 20;
 
     public static boolean isVerbose() {
         return verbose;
@@ -59,12 +55,19 @@ public class AppConfig {
         AppConfig.mavenHome = mavenHome;
     }
 
-    public static List<String> getGithubAccountsToScan() {
-        return githubAccountsToScan;
+    public static List<String> getGithubAccounts() {
+        return githubAccounts;
     }
 
-    public static void setGithubAccountsToScan(List<String> githubAccountsToScan) {
-        AppConfig.githubAccountsToScan = githubAccountsToScan;
+    public static void setGithubAccounts(List<String> githubAccounts) {
+        AppConfig.githubAccounts = githubAccounts;
+    }
+
+    public static void addGithubAccount(String githubAccount) {
+        if (AppConfig.githubAccounts == null) {
+            AppConfig.githubAccounts = new ArrayList<>();
+        }
+        AppConfig.githubAccounts.add(githubAccount);
     }
 
     public static List<String> getMavenOutputSkipPatterns() {
@@ -75,41 +78,15 @@ public class AppConfig {
         AppConfig.mavenOutputSkipPatterns = mavenOutputSkipPatterns;
     }
 
-    public static int getRepoWorkerThreadCount() {
-        return repoWorkerThreadCount;
-    }
-
-    public static void setRepoWorkerThreadCount(int repoWorkerThreadCount) {
-        AppConfig.repoWorkerThreadCount = repoWorkerThreadCount;
-    }
-
-    public static int getArtifactWorkerThreadCount() {
-        return artifactWorkerThreadCount;
-    }
-
-    public static void setArtifactWorkerThreadCount(int artifactWorkerThreadCount) {
-        AppConfig.artifactWorkerThreadCount = artifactWorkerThreadCount;
-    }
-
-    public static int getTagWorkerThreadCount() {
-        return tagWorkerThreadCount;
-    }
-
-    public static void setTagWorkerThreadCount(int tagWorkerThreadCount) {
-        AppConfig.tagWorkerThreadCount = tagWorkerThreadCount;
-    }
-
-    public static void addMavenSkipPatterns(String mavenOutputSkipPattern) {
-        if(mavenOutputSkipPatterns == null) {
-            mavenOutputSkipPatterns = new ArrayList<String>();
+    public static void addMavenOutputSkipPattern(String mavenOutputSkipPattern) {
+        if (AppConfig.mavenOutputSkipPatterns == null) {
+            AppConfig.mavenOutputSkipPatterns = new ArrayList<>();
         }
-        mavenOutputSkipPatterns.add(mavenOutputSkipPattern);
+        AppConfig.mavenOutputSkipPatterns.add(mavenOutputSkipPattern);
     }
 
-    public static void addGithubAccountsToScan(String githubAccountToScan) {
-        if(githubAccountsToScan == null) {
-            githubAccountsToScan = new ArrayList<String>();
-        }
-        githubAccountsToScan.add(githubAccountToScan);
+    static {
+        AppConfig.addMavenOutputSkipPattern("[");
+        AppConfig.addMavenOutputSkipPattern("Download");
     }
 }

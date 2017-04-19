@@ -1,4 +1,4 @@
-package org.wso2.security.tools.reposcanner.pojo;
+package org.wso2.security.tools.reposcanner.entiry;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -11,8 +11,8 @@ import java.util.Date;
 public class RepoError {
     @Id
     @Column(name = "ID")
-    @GeneratedValue(strategy=GenerationType.AUTO, generator="error_info_seq_gen")
-    @SequenceGenerator(name="error_info_seq_gen", sequenceName="ERROR_INFO_SEQ")
+    @GeneratedValue(strategy = GenerationType.AUTO, generator = "error_info_seq_gen")
+    @SequenceGenerator(name = "error_info_seq_gen", sequenceName = "ERROR_INFO_SEQ")
     private Long id;
 
     @Column(name = "BUILD_CONFIG", length = 2048)

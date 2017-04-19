@@ -1,7 +1,4 @@
-package org.wso2.security.tools.reposcanner.pojo;
-
-import org.eclipse.egit.github.core.Repository;
-import org.eclipse.egit.github.core.RepositoryTag;
+package org.wso2.security.tools.reposcanner.entiry;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -10,12 +7,12 @@ import java.util.Date;
  * Created by ayoma on 4/11/17.
  */
 @Entity
-@Table(name = "REPO", indexes = { @Index(columnList = "REPO_NAME,TAG_NAME", name = "repoName_tagName_idx") })
+@Table(name = "REPO", indexes = {@Index(columnList = "REPO_NAME,TAG_NAME", name = "repoName_tagName_idx")})
 public class Repo {
     @Id
     @Column(name = "ID")
-    @GeneratedValue(strategy=GenerationType.AUTO, generator="repo_info_seq_gen")
-    @SequenceGenerator(name="repo_info_seq_gen", sequenceName="REPO_INFO_SEQ")
+    @GeneratedValue(strategy = GenerationType.AUTO, generator = "repo_info_seq_gen")
+    @SequenceGenerator(name = "repo_info_seq_gen", sequenceName = "REPO_INFO_SEQ")
     private Long id;
 
     @Column(name = "REPO_TYPE", nullable = false)
@@ -44,14 +41,14 @@ public class Repo {
     public Repo() {
     }
 
-    public Repo(Repository repository, RepositoryTag repositoryTag) {
-        this.repoType=RepoType.GIT;
-        this.user = repository.getOwner().getLogin();
-        this.repositoryName = repository.getName();
-        this.repositoryUrl = repository.getCloneUrl();
-        this.tagName = repositoryTag.getName();
-        this.tagZip = repositoryTag.getZipballUrl();
-        this.addedDate = new Date();
+    public Repo(RepoType repoType, String user, String repositoryName, String repositoryUrl, String tagName, String tagZip, Date addedDate) {
+        this.repoType = repoType;
+        this.user = user;
+        this.repositoryName = repositoryName;
+        this.repositoryUrl = repositoryUrl;
+        this.tagName = tagName;
+        this.tagZip = tagZip;
+        this.addedDate = addedDate;
     }
 
     public Long getId() {

@@ -8,9 +8,9 @@ import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.wso2.security.tools.reposcanner.AppConfig;
-import org.wso2.security.tools.reposcanner.pojo.RepoArtifact;
-import org.wso2.security.tools.reposcanner.pojo.RepoError;
-import org.wso2.security.tools.reposcanner.pojo.Repo;
+import org.wso2.security.tools.reposcanner.entiry.Repo;
+import org.wso2.security.tools.reposcanner.entiry.RepoArtifact;
+import org.wso2.security.tools.reposcanner.entiry.RepoError;
 
 import java.util.List;
 import java.util.Properties;
@@ -23,8 +23,8 @@ public class JDBCStorage implements Storage {
     private static SessionFactory sessionFactory;
 
     public JDBCStorage(String driverName, String connectionUri, String username, char[] password, String hibernateDialect) {
-        try{
-            StandardServiceRegistryBuilder registryBuilder =  new StandardServiceRegistryBuilder();
+        try {
+            StandardServiceRegistryBuilder registryBuilder = new StandardServiceRegistryBuilder();
 
             Properties properties = new Properties();
             properties.put("hibernate.connection.driver_class", driverName);
@@ -32,10 +32,10 @@ public class JDBCStorage implements Storage {
             properties.put("hibernate.connection.username", username);
             properties.put("hibernate.connection.password", new String(password));
             properties.put("hibernate.dialect", hibernateDialect);
-            if(AppConfig.isCreateDB()) {
+            if (AppConfig.isCreateDB()) {
                 properties.put("hibernate.hbm2ddl.auto", "create");
             }
-            if(AppConfig.isDebug()) {
+            if (AppConfig.isDebug()) {
                 properties.put("hibernate.show_sql", "true");
                 properties.put("hibernate.format_sql", "true");
             }
@@ -49,10 +49,10 @@ public class JDBCStorage implements Storage {
 
             sessionFactory = configuration.buildSessionFactory();
 
-            for(int i = 0; i < password.length; i++) {
+            for (int i = 0; i < password.length; i++) {
                 password[i] = ' ';
             }
-        }catch (Throwable ex) {
+        } catch (Throwable ex) {
             log.fatal("Failed to create sessionFactory object. Terminating..." + ex);
             System.exit(1);
         }
@@ -64,20 +64,20 @@ public class JDBCStorage implements Storage {
 
     @Override
     public synchronized boolean isArtifactPresent(Repo repo, String path) throws Exception {
-        if(isRepoPresent(repo)) {
+        if (isRepoPresent(repo)) {
             List<Repo> repoList = getRepoInfoList(repo.getUser(), repo.getRepositoryName(), repo.getTagName());
             repo = repoList.get(0);
 
             Session session = sessionFactory.openSession();
             List results = null;
             try {
-                String hql = "FROM org.wso2.security.tools.reposcanner.pojo.RepoArtifact A WHERE A.repoInfo = :repoInfo AND A.path = :path";
+                String hql = "FROM org.wso2.security.tools.reposcanner.entiry.RepoArtifact A WHERE A.repoInfo = :repoInfo AND A.path = :path";
                 Query query = session.createQuery(hql);
                 query.setParameter("repoInfo", repo.getId());
                 query.setParameter("path", path);
                 results = query.list();
-                if(results.size() > 1) {
-                    log.warn("[Unexpected] Unexpected condition. Repo Info "+ repo.getId() + ", Path \"" + path +"\" found multiple times");
+                if (results.size() > 1) {
+                    log.warn("[Unexpected] Unexpected condition. Repo Info " + repo.getId() + ", Path \"" + path + "\" found multiple times");
                 }
             } catch (Exception e) {
                 throw e;
@@ -94,7 +94,7 @@ public class JDBCStorage implements Storage {
         Session session = sessionFactory.openSession();
         List results = null;
         try {
-            String hql = "FROM org.wso2.security.tools.reposcanner.pojo.Repo R WHERE R.repositoryName = :repositoryName AND R.tagName = :tagName AND R.user = :user";
+            String hql = "FROM org.wso2.security.tools.reposcanner.entiry.Repo R WHERE R.repositoryName = :repositoryName AND R.tagName = :tagName AND R.user = :user";
             Query query = session.createQuery(hql);
             query.setParameter("repositoryName", repositoryName);
             query.setParameter("tagName", tagName);

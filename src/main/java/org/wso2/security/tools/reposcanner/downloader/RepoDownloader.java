@@ -1,6 +1,6 @@
 package org.wso2.security.tools.reposcanner.downloader;
 
-import org.wso2.security.tools.reposcanner.pojo.Repo;
+import org.wso2.security.tools.reposcanner.entiry.Repo;
 
 import java.io.File;
 
