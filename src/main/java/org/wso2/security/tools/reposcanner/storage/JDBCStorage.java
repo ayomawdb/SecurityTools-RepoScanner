@@ -20,12 +20,10 @@ import java.util.Properties;
  */
 public class JDBCStorage implements Storage {
     private static Logger log = Logger.getLogger(JDBCStorage.class.getName());
-    private static SessionFactory sessionFactory;
+    private SessionFactory sessionFactory;
 
     public JDBCStorage(String driverName, String connectionUri, String username, char[] password, String hibernateDialect) {
         try {
-            StandardServiceRegistryBuilder registryBuilder = new StandardServiceRegistryBuilder();
-
             Properties properties = new Properties();
             properties.put("hibernate.connection.driver_class", driverName);
             properties.put("hibernate.connection.url", connectionUri);
@@ -54,7 +52,7 @@ public class JDBCStorage implements Storage {
             }
         } catch (Throwable ex) {
             log.fatal("Failed to create sessionFactory object. Terminating..." + ex);
-            System.exit(1);
+            throw ex;
         }
     }
 

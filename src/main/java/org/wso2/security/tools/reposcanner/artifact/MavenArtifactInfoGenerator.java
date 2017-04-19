@@ -57,7 +57,7 @@ public class MavenArtifactInfoGenerator implements ArtifactInfoGenerator {
         return handler.getMavenId();
     }
 
-    private class MavenIdInvocationOutputHandler implements InvocationOutputHandler {
+    private static class MavenIdInvocationOutputHandler implements InvocationOutputHandler {
         private String mavenId;
         private String consoleTag;
 

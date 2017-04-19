@@ -51,12 +51,16 @@ public class GitHubRepoScanner implements RepoScanner {
         if (gitTempFolder.exists()) {
             FileUtils.deleteDirectory(gitTempFolder);
         }
-        gitTempFolder.mkdir();
-        log.info(consoleTag + "Temporary folder created at: " + gitTempFolder.getAbsolutePath());
+        if(gitTempFolder.mkdir()) {
+            log.info(consoleTag + "Temporary folder created at: " + gitTempFolder.getAbsolutePath());
+        } else {
+            log.error(consoleTag + "Unable to create temporary folder at: " + gitTempFolder.getAbsolutePath());
+            return;
+        }
 
         //Get list of repositories from GitHub
         RepoInfoGenerator repoInfoGenerator = new GitHubRepoInfoGenerator(oAuth2Token);
-        List<Repo> repoList = new ArrayList<>();
+        List<Repo> repoList = null;
         if (AppConfig.getGithubAccounts() == null || AppConfig.getGithubAccounts().isEmpty()) {
             log.error(consoleTag + "No GitHub user accounts provided for the scan. Terminating...");
             return;
