@@ -56,6 +56,15 @@ public class Main {
     @Parameter(names = {"-rescan"}, description = "Rescan repo-tag combinaions even if they are already indexed. (Default: false)", order = 16)
     private boolean rescan;
 
+    @Parameter(names = {"-downloadMaster"}, description = "Download master branches of all repositories locally", order = 17)
+    private boolean downloadMaster;
+
+    @Parameter(names = {"-downloadTags"}, description = "Download all tags of all repositories locally", order = 18)
+    private boolean downloadTags;
+
+    @Parameter(names = {"-skipScan"}, description = "Skip scanning process. Usable when -downloadMaster and -downloadTag options are required without scanning.", order = 18)
+    private boolean skipScan;
+
     public static void main(String[] args) throws Exception {
         Main main = new Main();
 
@@ -107,23 +116,30 @@ public class Main {
         }
         AppConfig.setCreateDB(databaseCreate);
         AppConfig.setRescanRepos(rescan);
+        AppConfig.setDownloadMaster(downloadMaster);
+        AppConfig.setDownloadTags(downloadTags);
+        AppConfig.setSkipScan(skipScan);
 
         if (rescan) {
             log.warn("Full repository re-scan in progress. Scan will take additional time.");
         }
 
         Storage storage = null;
-        if (storageType.equals("JDBC")) {
-            if (databaseDriver == null || databaseUrl == null || databaseUsername == null || databasePassword == null || databaseHibernateDialect == null) {
-                log.error("JDBC parameters are not properly set (All -jdbc parameters are required). Terminating...");
+        if(!AppConfig.isSkipScan()) {
+            if (storageType.equals("JDBC")) {
+                if (databaseDriver == null || databaseUrl == null || databaseUsername == null || databasePassword == null || databaseHibernateDialect == null) {
+                    log.error("JDBC parameters are not properly set (All -jdbc parameters are required). Terminating...");
+                    jCommander.usage();
+                    return;
+                }
+                storage = new JDBCStorage(databaseDriver, databaseUrl, databaseUsername, databasePassword.toCharArray(), databaseHibernateDialect);
+            } else {
+                log.error("No valid storage option selected. Terminating...");
                 jCommander.usage();
                 return;
             }
-            storage = new JDBCStorage(databaseDriver, databaseUrl, databaseUsername, databasePassword.toCharArray(), databaseHibernateDialect);
         } else {
-            log.error("No valid storage option selected. Terminating...");
-            jCommander.usage();
-            return;
+            log.warn("[Skipping] SkipScan parameter is set. Skipping database connection initialization.");
         }
 
         if (gitOAuth2Token != null) {

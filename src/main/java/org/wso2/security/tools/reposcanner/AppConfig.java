@@ -11,6 +11,10 @@ public class AppConfig {
     private static boolean debug;
     private static boolean createDB;
     private static boolean rescanRepos;
+    private static boolean downloadMaster;
+    private static boolean downloadTags;
+    private static boolean skipScan;
+
     private static String mavenHome;
     private static List<String> githubAccounts;
     private static List<String> mavenOutputSkipPatterns;
@@ -88,5 +92,29 @@ public class AppConfig {
     static {
         AppConfig.addMavenOutputSkipPattern("[");
         AppConfig.addMavenOutputSkipPattern("Download");
+    }
+
+    public static boolean isDownloadMaster() {
+        return downloadMaster;
+    }
+
+    public static void setDownloadMaster(boolean downloadMaster) {
+        AppConfig.downloadMaster = downloadMaster;
+    }
+
+    public static boolean isDownloadTags() {
+        return downloadTags;
+    }
+
+    public static void setDownloadTags(boolean downloadTags) {
+        AppConfig.downloadTags = downloadTags;
+    }
+
+    public static boolean isSkipScan() {
+        return skipScan;
+    }
+
+    public static void setSkipScan(boolean skipScan) {
+        AppConfig.skipScan = skipScan;
     }
 }

@@ -20,11 +20,4 @@ public class GitHubTagDownloader implements RepoDownloader {
         downloadFile(repo.getTagZip(), tempZipFile);
         ZipUtil.unpack(tempZipFile, destinationFolder);
     }
-
-    private void downloadFile(String sourceUrl, File destinationFile) throws IOException {
-        URL website = new URL(sourceUrl);
-        ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-        FileOutputStream fos = new FileOutputStream(destinationFile);
-        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-    }
 }

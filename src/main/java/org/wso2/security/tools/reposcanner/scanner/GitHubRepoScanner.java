@@ -68,107 +68,111 @@ public class GitHubRepoScanner implements RepoScanner {
             repoList = repoInfoGenerator.getRepoList(consoleTag, AppConfig.getGithubAccounts());
         }
 
-        repoList.parallelStream().forEach(repo -> {
-            String newConsoleTag = consoleTag + "[User:" + repo.getUser() + ",Repo:" + repo.getRepositoryUrl() + ",Tag:" + repo.getTagName() + "] ";
-            try {
-                if (AppConfig.isRescanRepos() || !storage.isRepoPresent(repo)) {
+        if(!AppConfig.isSkipScan()) {
+            repoList.parallelStream().forEach(repo -> {
+                String newConsoleTag = consoleTag + "[User:" + repo.getUser() + ",Repo:" + repo.getRepositoryUrl() + ",Tag:" + repo.getTagName() + "] ";
+                try {
+                    if (AppConfig.isRescanRepos() || !storage.isRepoPresent(repo)) {
 
-                    log.info(newConsoleTag + "[Adding] Adding repo to scanning pool");
+                        log.info(newConsoleTag + "[Adding] Adding repo to scanning pool");
 
-                    //Create folder to store files from Github
-                    String identifier = repo.getRepositoryName() + "-Tag-" + repo.getTagName();
-                    File artifactTempFolder = new File(gitTempFolder.getAbsoluteFile() + File.separator + identifier);
-                    artifactTempFolder.mkdir();
-                    log.info(consoleTag + "Temporary folder created at: " + artifactTempFolder.getAbsolutePath());
+                        //Create folder to store files from Github
+                        String identifier = repo.getRepositoryName() + "-Tag-" + repo.getTagName();
+                        File artifactTempFolder = new File(gitTempFolder.getAbsoluteFile() + File.separator + identifier);
+                        artifactTempFolder.mkdir();
+                        log.info(consoleTag + "Temporary folder created at: " + artifactTempFolder.getAbsolutePath());
 
-                    try {
-                        //Download from GitHub and extract ZIP
-                        log.info(consoleTag + "Downloading started");
-                        gitRepoDownloader.downloadRepo(repo, artifactTempFolder);
-                        log.info(consoleTag + "Downloading completed");
-
-                        //Locate POM files within the extracted ZIP
-                        log.info(consoleTag + "POM searching started");
-                        Collection<File> sourceFiles = FileUtils.listFiles(artifactTempFolder, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
-                        List<File> mavenBuildConfigFiles = sourceFiles.stream().filter(file -> file.getName().equals("pom.xml")).collect(Collectors.toList());
-                        log.info(consoleTag + "POM searching completed");
-
-                        //Execute maven executor plugin on each POM to get Maven ID (groupId, artifactId, packaging, version)
-                        ExecutorService artifactWorkerExecutorService = Executors.newWorkStealingPool();
-
-                        List<Callable<RepoArtifact>> callableArrayList = new ArrayList<>();
-
-                        mavenBuildConfigFiles.parallelStream().forEach(mavenBuildConfigFile -> {
-                            try {
-                                String path = mavenBuildConfigFile.getAbsolutePath().substring(artifactTempFolder.getAbsolutePath().length(), mavenBuildConfigFile.getAbsolutePath().length());
-                                String pathIncludedConsoleTag = consoleTag + "[" + path + "] ";
-
-                                //If this is a repo re-scan, only the artifacts that are not already indexed should be scanned.
-                                //If thus is not a repo re-scan, repo itself will be skipped if it is already indexed
-                                boolean scanArtifact = true;
-                                if (AppConfig.isRescanRepos() && storage.isArtifactPresent(repo, path)) {
-                                    scanArtifact = false;
-                                }
-                                if (scanArtifact) {
-                                    log.info(pathIncludedConsoleTag + "[Adding] Adding POM for artifact information gathering pool");
-                                    Callable<RepoArtifact> callable = () -> {
-                                        try {
-                                            RepoArtifact repoArtifactInfo = mavenArtifactInfoGenerator.getArtifact(consoleTag, repo, artifactTempFolder, mavenBuildConfigFile);
-                                            log.info(consoleTag + "Maven ID extracted. Sending for storage.");
-                                            return repoArtifactInfo;
-                                        } catch (Exception e) {
-                                            RepoError repoError = new RepoError(path, "MavenID not found", repo, new Date());
-                                            storage.persistError(repoError);
-
-                                            if (AppConfig.isVerbose()) {
-                                                log.warn(consoleTag + "[Skipping] Could not extract Maven ID from Maven executor", e);
-                                            } else {
-                                                log.warn(consoleTag + "[Skipping] Could not extract Maven ID from Maven executor");
-                                            }
-                                            return null;
-                                        }
-                                    };
-                                    callableArrayList.add(callable);
-                                } else {
-                                    log.warn(pathIncludedConsoleTag + "[Skipping] Artifact is already present in storage.");
-                                }
-                            } catch (Exception e) {
-                                log.error(consoleTag + "Exception in extracting artifact information for repository: " + repo + " config file: " + mavenBuildConfigFile.getAbsolutePath(), e);
-                            }
-                        });
-
-                        artifactWorkerExecutorService.invokeAll(callableArrayList).parallelStream().forEach(artifactFuture -> {
-                            RepoArtifact repoArtifact = null;
-                            try {
-                                repoArtifact = artifactFuture.get();
-                                if (repoArtifact != null) {
-                                    storage.persist(repoArtifact);
-                                }
-                            } catch (Exception e) {
-                                log.error(consoleTag + "Exception in persisting Artifact: " + repoArtifact, e);
-                            }
-                        });
-
-                        //Do cleanup and storage release
-                        log.info(consoleTag + "All threads complete. Clean up tasks started.");
-                        log.info(consoleTag + "Deleting: " + artifactTempFolder.getAbsolutePath());
-                        FileUtils.deleteDirectory(artifactTempFolder);
-                    } catch (Exception e) {
                         try {
-                            FileUtils.deleteDirectory(artifactTempFolder);
-                        } catch (IOException e1) {
-                            log.warn("Exception in removing temp folder: " + artifactTempFolder.getAbsolutePath());
-                        }
-                        log.error(consoleTag + "Git repository scanning failed: " + identifier, e);
-                    }
+                            //Download from GitHub and extract ZIP
+                            log.info(consoleTag + "Downloading started");
+                            gitRepoDownloader.downloadRepo(repo, artifactTempFolder);
+                            log.info(consoleTag + "Downloading completed");
 
-                } else {
-                    log.warn(newConsoleTag + "[Skipping] Repo is already present in storage.");
+                            //Locate POM files within the extracted ZIP
+                            log.info(consoleTag + "POM searching started");
+                            Collection<File> sourceFiles = FileUtils.listFiles(artifactTempFolder, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
+                            List<File> mavenBuildConfigFiles = sourceFiles.stream().filter(file -> file.getName().equals("pom.xml")).collect(Collectors.toList());
+                            log.info(consoleTag + "POM searching completed");
+
+                            //Execute maven executor plugin on each POM to get Maven ID (groupId, artifactId, packaging, version)
+                            ExecutorService artifactWorkerExecutorService = Executors.newWorkStealingPool();
+
+                            List<Callable<RepoArtifact>> callableArrayList = new ArrayList<>();
+
+                            mavenBuildConfigFiles.parallelStream().forEach(mavenBuildConfigFile -> {
+                                try {
+                                    String path = mavenBuildConfigFile.getAbsolutePath().substring(artifactTempFolder.getAbsolutePath().length(), mavenBuildConfigFile.getAbsolutePath().length());
+                                    String pathIncludedConsoleTag = consoleTag + "[" + path + "] ";
+
+                                    //If this is a repo re-scan, only the artifacts that are not already indexed should be scanned.
+                                    //If thus is not a repo re-scan, repo itself will be skipped if it is already indexed
+                                    boolean scanArtifact = true;
+                                    if (AppConfig.isRescanRepos() && storage.isArtifactPresent(repo, path)) {
+                                        scanArtifact = false;
+                                    }
+                                    if (scanArtifact) {
+                                        log.info(pathIncludedConsoleTag + "[Adding] Adding POM for artifact information gathering pool");
+                                        Callable<RepoArtifact> callable = () -> {
+                                            try {
+                                                RepoArtifact repoArtifactInfo = mavenArtifactInfoGenerator.getArtifact(consoleTag, repo, artifactTempFolder, mavenBuildConfigFile);
+                                                log.info(consoleTag + "Maven ID extracted. Sending for storage.");
+                                                return repoArtifactInfo;
+                                            } catch (Exception e) {
+                                                RepoError repoError = new RepoError(path, "MavenID not found", repo, new Date());
+                                                storage.persistError(repoError);
+
+                                                if (AppConfig.isVerbose()) {
+                                                    log.warn(consoleTag + "[Skipping] Could not extract Maven ID from Maven executor", e);
+                                                } else {
+                                                    log.warn(consoleTag + "[Skipping] Could not extract Maven ID from Maven executor");
+                                                }
+                                                return null;
+                                            }
+                                        };
+                                        callableArrayList.add(callable);
+                                    } else {
+                                        log.warn(pathIncludedConsoleTag + "[Skipping] Artifact is already present in storage.");
+                                    }
+                                } catch (Exception e) {
+                                    log.error(consoleTag + "Exception in extracting artifact information for repository: " + repo + " config file: " + mavenBuildConfigFile.getAbsolutePath(), e);
+                                }
+                            });
+
+                            artifactWorkerExecutorService.invokeAll(callableArrayList).parallelStream().forEach(artifactFuture -> {
+                                RepoArtifact repoArtifact = null;
+                                try {
+                                    repoArtifact = artifactFuture.get();
+                                    if (repoArtifact != null) {
+                                        storage.persist(repoArtifact);
+                                    }
+                                } catch (Exception e) {
+                                    log.error(consoleTag + "Exception in persisting Artifact: " + repoArtifact, e);
+                                }
+                            });
+
+                            //Do cleanup and storage release
+                            log.info(consoleTag + "All threads complete. Clean up tasks started.");
+                            log.info(consoleTag + "Deleting: " + artifactTempFolder.getAbsolutePath());
+                            FileUtils.deleteDirectory(artifactTempFolder);
+                        } catch (Exception e) {
+                            try {
+                                FileUtils.deleteDirectory(artifactTempFolder);
+                            } catch (IOException e1) {
+                                log.warn("Exception in removing temp folder: " + artifactTempFolder.getAbsolutePath());
+                            }
+                            log.error(consoleTag + "Git repository scanning failed: " + identifier, e);
+                        }
+
+                    } else {
+                        log.warn(newConsoleTag + "[Skipping] Repo is already present in storage.");
+                    }
+                } catch (Exception e) {
+                    log.error(consoleTag + "Exception in scanning repository: " + repo, e);
                 }
-            } catch (Exception e) {
-                log.error(consoleTag + "Exception in scanning repository: " + repo, e);
-            }
-        });
+            });
+        } else {
+            log.warn(consoleTag + "[Skipping] SkipScan parameter is set.");
+        }
 
         //Do cleanup and storage release
         log.info(consoleTag + "All threads complete. Clean up tasks started.");

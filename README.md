@@ -38,7 +38,7 @@ Note: Passwords and OAuth2 Tokens are requested as command line inputs.
 Usage: Repo Scanner [options]
   Options:
     -git.oauth2
-      OAuth 2 token used to access GitHub
+      OAuth token used to access GitHub
     -git.users
       Comma separated list of GitHub user accounts to scan
     -maven.home
@@ -66,21 +66,33 @@ Usage: Repo Scanner [options]
     -jdbc.create
       Drop and create JDBC tables
       Default: false
-    -threads.tag
-      Thread count used to fetch tag information for each repository (Default: 
-      20) 
-      Default: 0
-    -threads.repo
-      Thread count doing repository scanning (Example: scan each tag of each 
-      repository) (Default: 1)
-      Default: 0
-    -threads.artifact
-      Thread count doing artifact level scanning (Example: scan downloaded 
-      repository for build information) (Default: 1)
-      Default: 0
+    -rescan
+      Rescan repo-tag combinaions even if they are already indexed. (Default:
+      false)
+      Default: false
+    -downloadMaster
+      Download master branches of all repositories locally
+      Default: false
+    -downloadTags
+      Download all tags of all repositories locally
+      Default: false
+    -skipScan
+      Skip scanning process. Usable when -downloadMaster and -downloadTag
+      options are required without scanning.
+      Default: false
 ```
 ## Usage Examples
-Scan GIT "wso2" and "wso2-extensions" repositories
+Scan GIT all repositories from "wso2" and "wso2-extensions" GitHub account
 ```
 java -jar RepoScanner-1.0-SNAPSHOT.jar -git.oauth2 -jdbc.password -jdbc.username MySQLUser -git.users wso2,wso2-extensions
+```
+
+Skip the scanning process and download source code from master branches of all repositories from "wso2" and "wso2-extensions" GitHub account.
+```
+java -jar RepoScanner-1.0-SNAPSHOT.jar -git.oauth2 -jdbc.password -jdbc.username MySQLUser -git.users wso2,wso2-extensions -skipScan -downloadMaster
+```
+
+Skip the scanning process and download source code from master branches and tags of all repositories from "wso2" and "wso2-extensions" GitHub account.
+```
+java -jar RepoScanner-1.0-SNAPSHOT.jar -git.oauth2 -jdbc.password -jdbc.username MySQLUser -git.users wso2,wso2-extensions -skipScan -downloadMaster -downloadTags
 ```
