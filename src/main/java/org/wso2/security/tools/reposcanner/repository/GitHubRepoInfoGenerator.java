@@ -38,7 +38,7 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
         client = new GitHubClient();
         client.setOAuth2Token(new String(oAuth2Token));
 
-        if(AppConfig.isDownloadMaster()) {
+        if (AppConfig.isDownloadMaster()) {
             gitMasterDownloader = new GitHubMasterDownloader();
             masterDownloadFolder = new File("source-master");
             if (masterDownloadFolder.exists()) {
@@ -51,7 +51,7 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
             masterDownloadFolder.mkdir();
         }
 
-        if(AppConfig.isDownloadTags()) {
+        if (AppConfig.isDownloadTags()) {
             gitTagDownloader = new GitHubTagDownloader();
             tagsDownloadFolder = new File("source-tags");
             if (tagsDownloadFolder.exists()) {
@@ -82,7 +82,7 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
                         try {
                             log.info(consoleTag + "[DownloadMaster] Started downloading master branch of: " + repository.getName());
                             Repo tempRepo = new Repo(RepoType.GIT, repository.getOwner().getLogin(), repository.getName(), repository.getCloneUrl(), null, null, null);
-                            gitMasterDownloader.downloadRepo(tempRepo, masterDownloadFolder);
+                            gitMasterDownloader.downloadRepo(tempRepo, masterDownloadFolder, false);
                             log.info(consoleTag + "[DownloadMaster] Completed downloading master branch of: " + repository.getName());
                         } catch (Exception e) {
                             log.error("Error in downloading master branch ZIP for GitHub user account: " + user + " repository: " + repository.getName(), e);
@@ -105,7 +105,7 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
                                 if (AppConfig.isDownloadTags()) {
                                     try {
                                         log.info(consoleTag + "[DownloadTags] Started downloading tag: " + repo.getTagName() + " of: " + repository.getName());
-                                        gitTagDownloader.downloadRepo(repo, tagsDownloadFolder);
+                                        gitTagDownloader.downloadRepo(repo, tagsDownloadFolder, false);
                                         log.info(consoleTag + "[DownloadTags] Completed downloading tag: " + repo.getTagName() + " of: " + repository.getName());
                                     } catch (Exception e) {
                                         log.error("Error in downloading master branch ZIP for GitHub user account: " + user + " repository: " + repository.getName(), e);

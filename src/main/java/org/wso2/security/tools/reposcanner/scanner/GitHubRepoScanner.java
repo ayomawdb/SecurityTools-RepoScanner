@@ -51,7 +51,7 @@ public class GitHubRepoScanner implements RepoScanner {
         if (gitTempFolder.exists()) {
             FileUtils.deleteDirectory(gitTempFolder);
         }
-        if(gitTempFolder.mkdir()) {
+        if (gitTempFolder.mkdir()) {
             log.info(consoleTag + "Temporary folder created at: " + gitTempFolder.getAbsolutePath());
         } else {
             log.error(consoleTag + "Unable to create temporary folder at: " + gitTempFolder.getAbsolutePath());
@@ -68,7 +68,7 @@ public class GitHubRepoScanner implements RepoScanner {
             repoList = repoInfoGenerator.getRepoList(consoleTag, AppConfig.getGithubAccounts());
         }
 
-        if(!AppConfig.isSkipScan()) {
+        if (!AppConfig.isSkipScan()) {
             repoList.parallelStream().forEach(repo -> {
                 String newConsoleTag = consoleTag + "[User:" + repo.getUser() + ",Repo:" + repo.getRepositoryUrl() + ",Tag:" + repo.getTagName() + "] ";
                 try {

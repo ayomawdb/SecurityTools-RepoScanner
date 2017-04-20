@@ -10,9 +10,11 @@ import java.io.File;
  */
 public class GitHubMasterDownloader implements RepoDownloader {
     @Override
-    public void downloadRepo(Repo repo, File destinationFolder) throws Exception {
+    public void downloadRepo(Repo repo, File destinationFolder, boolean unzip) throws Exception {
         File tempZipFile = new File(destinationFolder.getAbsoluteFile() + File.separator + repo.getRepositoryName() + "-master.zip");
-        downloadFile("https://github.com/" +repo.getUser()+ "/"+repo.getRepositoryName()+"/archive/master.zip", tempZipFile);
-        ZipUtil.unpack(tempZipFile, destinationFolder);
+        DownloadUtil.downloadFile("https://github.com/" + repo.getUser() + "/" + repo.getRepositoryName() + "/archive/master.zip", tempZipFile);
+        if (unzip) {
+            ZipUtil.unpack(tempZipFile, destinationFolder);
+        }
     }
 }

@@ -125,7 +125,7 @@ public class Main {
         }
 
         Storage storage = null;
-        if(!AppConfig.isSkipScan()) {
+        if (!AppConfig.isSkipScan()) {
             if (storageType.equals("JDBC")) {
                 if (databaseDriver == null || databaseUrl == null || databaseUsername == null || databasePassword == null || databaseHibernateDialect == null) {
                     log.error("JDBC parameters are not properly set (All -jdbc parameters are required). Terminating...");
