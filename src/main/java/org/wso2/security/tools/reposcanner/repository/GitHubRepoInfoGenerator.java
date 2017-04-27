@@ -96,6 +96,7 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
                         log.info(consoleTag + "Fetching tags for GitHub user account: " + user + " repository: " + repository.getName());
                         try {
                             List<RepositoryTag> repositoryTagLists = repositoryService.getTags(repository);
+                            log.info(consoleTag + repositoryTagLists.size() + " tags found for user account: " + user + " repository:" + repository.getName());
 
                             //Create persistable Repo object with repository and tag information
                             repositoryTagLists.parallelStream().forEach(repositoryTag -> {

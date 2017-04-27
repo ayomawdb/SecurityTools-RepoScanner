@@ -36,6 +36,9 @@ public class RepoError {
         this.addedDate = addedDate;
     }
 
+    public RepoError() {
+    }
+
     public Long getId() {
         return id;
     }

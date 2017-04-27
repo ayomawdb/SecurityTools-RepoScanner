@@ -17,4 +17,6 @@ public interface Storage {
     public boolean persistError(RepoError repoError) throws Exception;
 
     public void close();
+
+    public boolean isErrorPresent(Repo repo, String path) throws Exception;
 }

@@ -53,6 +53,9 @@ public class RepoArtifact {
         this.finalName = finalName;
     }
 
+    public RepoArtifact() {
+    }
+
     public Long getId() {
         return id;
     }

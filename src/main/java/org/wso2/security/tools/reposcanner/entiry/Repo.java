@@ -38,9 +38,6 @@ public class Repo {
     @Column(name = "ADDED_DATE")
     private Date addedDate;
 
-    public Repo() {
-    }
-
     public Repo(RepoType repoType, String user, String repositoryName, String repositoryUrl, String tagName, String tagZip, Date addedDate) {
         this.repoType = repoType;
         this.user = user;
@@ -49,6 +46,9 @@ public class Repo {
         this.tagName = tagName;
         this.tagZip = tagZip;
         this.addedDate = addedDate;
+    }
+
+    public Repo() {
     }
 
     public Long getId() {

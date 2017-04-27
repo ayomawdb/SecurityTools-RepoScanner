@@ -68,9 +68,9 @@ public class JDBCStorage implements Storage {
             Session session = sessionFactory.openSession();
             List results = null;
             try {
-                String hql = "FROM org.wso2.security.tools.reposcanner.entiry.RepoArtifact A WHERE A.repoInfo = :repoInfo AND A.path = :path";
+                String hql = "FROM org.wso2.security.tools.reposcanner.entiry.RepoArtifact A WHERE A.repo = :repo AND A.path = :path";
                 Query query = session.createQuery(hql);
-                query.setParameter("repoInfo", repo.getId());
+                query.setParameter("repo", repo);
                 query.setParameter("path", path);
                 results = query.list();
                 if (results.size() > 1) {
@@ -156,5 +156,33 @@ public class JDBCStorage implements Storage {
 
     public void close() {
         sessionFactory.close();
+    }
+
+    @Override
+    public boolean isErrorPresent(Repo repo, String path) throws Exception {
+        if (isRepoPresent(repo)) {
+            List<Repo> repoList = getRepoInfoList(repo.getUser(), repo.getRepositoryName(), repo.getTagName());
+            repo = repoList.get(0);
+
+            Session session = sessionFactory.openSession();
+            List results = null;
+            try {
+                String hql = "FROM org.wso2.security.tools.reposcanner.entiry.RepoError A WHERE A.repo = :repo AND A.buildConfigLocation = :path";
+                Query query = session.createQuery(hql);
+                query.setParameter("repo", repo);
+                query.setParameter("path", path);
+                results = query.list();
+                if (results.size() > 1) {
+                    log.warn("[Unexpected] Unexpected condition. Repo Info " + repo.getId() + ", Path \"" + path + "\" found multiple times");
+                }
+            } catch (Exception e) {
+                throw e;
+            } finally {
+                session.close();
+            }
+            return !results.isEmpty();
+        } else {
+            return false;
+        }
     }
 }

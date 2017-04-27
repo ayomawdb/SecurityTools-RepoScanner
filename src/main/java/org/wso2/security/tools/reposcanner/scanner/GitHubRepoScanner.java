@@ -102,12 +102,15 @@ public class GitHubRepoScanner implements RepoScanner {
                             mavenBuildConfigFiles.parallelStream().forEach(mavenBuildConfigFile -> {
                                 try {
                                     String path = mavenBuildConfigFile.getAbsolutePath().substring(artifactTempFolder.getAbsolutePath().length(), mavenBuildConfigFile.getAbsolutePath().length());
+                                    path = path.substring(path.indexOf(File.separator, 1), path.length());
+                                    String finalPath = path.replace("pom.xml", "");
+
                                     String pathIncludedConsoleTag = consoleTag + "[" + path + "] ";
 
                                     //If this is a repo re-scan, only the artifacts that are not already indexed should be scanned.
                                     //If thus is not a repo re-scan, repo itself will be skipped if it is already indexed
                                     boolean scanArtifact = true;
-                                    if (AppConfig.isRescanRepos() && storage.isArtifactPresent(repo, path)) {
+                                    if (AppConfig.isRescanRepos() && (storage.isArtifactPresent(repo, path) || storage.isErrorPresent(repo, path))) {
                                         scanArtifact = false;
                                     }
                                     if (scanArtifact) {
@@ -118,7 +121,7 @@ public class GitHubRepoScanner implements RepoScanner {
                                                 log.info(consoleTag + "Maven ID extracted. Sending for storage.");
                                                 return repoArtifactInfo;
                                             } catch (Exception e) {
-                                                RepoError repoError = new RepoError(path, "MavenID not found", repo, new Date());
+                                                RepoError repoError = new RepoError(finalPath, "MavenID not found", repo, new Date());
                                                 storage.persistError(repoError);
 
                                                 if (AppConfig.isVerbose()) {
