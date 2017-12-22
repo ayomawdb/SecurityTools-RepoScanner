@@ -107,7 +107,7 @@ public class GitHubRepoScanner implements RepoScanner {
                             log.info(consoleTag + "POM searching completed");
 
                             //Execute maven executor plugin on each POM to get Maven ID (groupId, artifactId, packaging, version)
-                            ExecutorService artifactWorkerExecutorService = Executors.newWorkStealingPool();
+                            ExecutorService artifactWorkerExecutorService = Executors.newSingleThreadExecutor();
 
                             List<Callable<RepoArtifact>> callableArrayList = new ArrayList<>();
 
