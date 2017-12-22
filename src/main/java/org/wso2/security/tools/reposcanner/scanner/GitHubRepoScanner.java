@@ -1,3 +1,19 @@
+/*
+ *  Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.wso2.security.tools.reposcanner.scanner;
 
 import org.apache.commons.io.FileUtils;
@@ -26,9 +42,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-/**
- * Created by ayoma on 4/15/17.
- */
 public class GitHubRepoScanner implements RepoScanner {
     private static Logger log = Logger.getLogger(GitHubRepoScanner.class.getName());
 
@@ -42,7 +55,6 @@ public class GitHubRepoScanner implements RepoScanner {
         String consoleTag = "[GIT] ";
         log.info(consoleTag + "GIT repository scanning started.");
 
-        //BuildConfigLocator buildConfigLocator = new MavenBuildConfigLocator();
         ArtifactInfoGenerator mavenArtifactInfoGenerator = new MavenArtifactInfoGenerator();
         RepoDownloader gitRepoDownloader = new GitHubTagDownloader();
 
@@ -99,7 +111,7 @@ public class GitHubRepoScanner implements RepoScanner {
 
                             List<Callable<RepoArtifact>> callableArrayList = new ArrayList<>();
 
-                            mavenBuildConfigFiles.parallelStream().forEach(mavenBuildConfigFile -> {
+                            mavenBuildConfigFiles.stream().forEach(mavenBuildConfigFile -> {
                                 try {
                                     String path = mavenBuildConfigFile.getAbsolutePath().substring(artifactTempFolder.getAbsolutePath().length(), mavenBuildConfigFile.getAbsolutePath().length());
                                     path = path.substring(path.indexOf(File.separator, 1), path.length());
@@ -108,7 +120,7 @@ public class GitHubRepoScanner implements RepoScanner {
                                     String pathIncludedConsoleTag = consoleTag + "[" + path + "] ";
 
                                     //If this is a repo re-scan, only the artifacts that are not already indexed should be scanned.
-                                    //If thus is not a repo re-scan, repo itself will be skipped if it is already indexed
+                                    //If thus is not a repo re-scan, repo itself will be skipped if it is already indexed (in previous condition check)
                                     boolean scanArtifact = true;
                                     if (AppConfig.isRescanRepos() && (storage.isArtifactPresent(repo, path) || storage.isErrorPresent(repo, path))) {
                                         scanArtifact = false;
@@ -117,7 +129,8 @@ public class GitHubRepoScanner implements RepoScanner {
                                         log.info(pathIncludedConsoleTag + "[Adding] Adding POM for artifact information gathering pool");
                                         Callable<RepoArtifact> callable = () -> {
                                             try {
-                                                RepoArtifact repoArtifactInfo = mavenArtifactInfoGenerator.getArtifact(consoleTag, repo, artifactTempFolder, mavenBuildConfigFile);
+                                                RepoArtifact repoArtifactInfo = mavenArtifactInfoGenerator.getArtifact(consoleTag, artifactTempFolder, mavenBuildConfigFile);
+                                                repoArtifactInfo.setRepo(repo);
                                                 log.info(consoleTag + "Maven ID extracted. Sending for storage.");
                                                 return repoArtifactInfo;
                                             } catch (Exception e) {
@@ -137,11 +150,11 @@ public class GitHubRepoScanner implements RepoScanner {
                                         log.warn(pathIncludedConsoleTag + "[Skipping] Artifact is already present in storage.");
                                     }
                                 } catch (Exception e) {
-                                    log.error(consoleTag + "Exception in extracting artifact information for repository: " + repo + " config file: " + mavenBuildConfigFile.getAbsolutePath(), e);
+                                    log.error(consoleTag + "[!!! CRITICAL ERROR !!!] Exception in extracting artifact information for repository: " + repo + " config file: " + mavenBuildConfigFile.getAbsolutePath(), e);
                                 }
                             });
 
-                            artifactWorkerExecutorService.invokeAll(callableArrayList).parallelStream().forEach(artifactFuture -> {
+                            artifactWorkerExecutorService.invokeAll(callableArrayList).stream().forEach(artifactFuture -> {
                                 RepoArtifact repoArtifact = null;
                                 try {
                                     repoArtifact = artifactFuture.get();
@@ -149,28 +162,28 @@ public class GitHubRepoScanner implements RepoScanner {
                                         storage.persist(repoArtifact);
                                     }
                                 } catch (Exception e) {
-                                    log.error(consoleTag + "Exception in persisting Artifact: " + repoArtifact, e);
+                                    log.error(consoleTag + "[!!! CRITICAL ERROR !!!] Exception in persisting Artifact: " + repoArtifact, e);
                                 }
                             });
-
-                            //Do cleanup and storage release
-                            log.info(consoleTag + "All threads complete. Clean up tasks started.");
-                            log.info(consoleTag + "Deleting: " + artifactTempFolder.getAbsolutePath());
-                            FileUtils.deleteDirectory(artifactTempFolder);
                         } catch (Exception e) {
                             try {
                                 FileUtils.deleteDirectory(artifactTempFolder);
                             } catch (IOException e1) {
                                 log.warn("Exception in removing temp folder: " + artifactTempFolder.getAbsolutePath());
                             }
-                            log.error(consoleTag + "Git repository scanning failed: " + identifier, e);
+                            log.error(consoleTag + "[!!! CRITICAL ERROR !!!] Git repository scanning failed: " + identifier, e);
+                        } finally {
+                            //Do cleanup and storage release
+                            log.info(consoleTag + "All threads complete. Clean up tasks started.");
+                            log.info(consoleTag + "Deleting: " + artifactTempFolder.getAbsolutePath());
+                            FileUtils.deleteDirectory(artifactTempFolder);
                         }
 
                     } else {
                         log.warn(newConsoleTag + "[Skipping] Repo is already present in storage.");
                     }
                 } catch (Exception e) {
-                    log.error(consoleTag + "Exception in scanning repository: " + repo, e);
+                    log.error(consoleTag + "[!!! CRITICAL ERROR !!!] Exception in scanning repository: " + repo, e);
                 }
             });
         } else {
