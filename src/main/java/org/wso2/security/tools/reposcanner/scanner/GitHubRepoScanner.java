@@ -127,12 +127,13 @@ public class GitHubRepoScanner implements RepoScanner {
                                     }
                                     if (scanArtifact) {
                                         log.info(pathIncludedConsoleTag + "[Adding] Adding POM for artifact information gathering pool");
-                                        Callable<RepoArtifact> callable = () -> {
+                                        //Callable<RepoArtifact> callable = () -> {
                                             try {
                                                 RepoArtifact repoArtifactInfo = mavenArtifactInfoGenerator.getArtifact(consoleTag, artifactTempFolder, mavenBuildConfigFile);
                                                 repoArtifactInfo.setRepo(repo);
                                                 log.info(consoleTag + "Maven ID extracted. Sending for storage.");
-                                                return repoArtifactInfo;
+                                                //return repoArtifactInfo;
+                                                storage.persist(repoArtifactInfo);
                                             } catch (Exception e) {
                                                 RepoError repoError = new RepoError(finalPath, "MavenID not found", repo, new Date());
                                                 storage.persistError(repoError);
@@ -142,10 +143,10 @@ public class GitHubRepoScanner implements RepoScanner {
                                                 } else {
                                                     log.warn(consoleTag + "[Skipping] Could not extract Maven ID from Maven executor");
                                                 }
-                                                return null;
+                                                //return null;
                                             }
-                                        };
-                                        callableArrayList.add(callable);
+                                        //};
+                                        //callableArrayList.add(callable);
                                     } else {
                                         log.warn(pathIncludedConsoleTag + "[Skipping] Artifact is already present in storage.");
                                     }
@@ -154,7 +155,7 @@ public class GitHubRepoScanner implements RepoScanner {
                                 }
                             });
 
-                            artifactWorkerExecutorService.invokeAll(callableArrayList).stream().forEach(artifactFuture -> {
+                            /** artifactWorkerExecutorService.invokeAll(callableArrayList).stream().forEach(artifactFuture -> {
                                 RepoArtifact repoArtifact = null;
                                 try {
                                     repoArtifact = artifactFuture.get();
@@ -164,7 +165,7 @@ public class GitHubRepoScanner implements RepoScanner {
                                 } catch (Exception e) {
                                     log.error(consoleTag + "[!!! CRITICAL ERROR !!!] Exception in persisting Artifact: " + repoArtifact, e);
                                 }
-                            });
+                            }); **/
                         } catch (Exception e) {
                             try {
                                 FileUtils.deleteDirectory(artifactTempFolder);
