@@ -96,13 +96,17 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
                 //Download master branches only if download-master flag is enabled
                 if (AppConfig.isDownloadMaster()) {
                     userRepositoryList.parallelStream().forEach(repository -> {
-                        try {
-                            log.info(consoleTag + "[DownloadMaster] Started downloading master branch of: " + repository.getName());
-                            Repo tempRepo = new Repo(RepoType.GIT, repository.getOwner().getLogin(), repository.getName(), repository.getCloneUrl(), null, null, null);
-                            gitMasterDownloader.downloadRepo(tempRepo, masterDownloadFolder, false);
-                            log.info(consoleTag + "[DownloadMaster] Completed downloading master branch of: " + repository.getName());
-                        } catch (Exception e) {
-                            log.error("Error in downloading master branch ZIP for GitHub user account: " + user + " repository: " + repository.getName(), e);
+                        if (AppConfig.getGithubRepos() == null ||  AppConfig.getGithubRepos().contains(repository.getName())) {
+                            try {
+                                log.info(consoleTag + "[DownloadMaster] Started downloading master branch of: " + repository.getName());
+                                Repo tempRepo = new Repo(RepoType.GIT, repository.getOwner().getLogin(), repository.getName(), repository.getCloneUrl(), null, null, null);
+                                gitMasterDownloader.downloadRepo(tempRepo, masterDownloadFolder, false);
+                                log.info(consoleTag + "[DownloadMaster] Completed downloading master branch of: " + repository.getName());
+                            } catch (Exception e) {
+                                log.error(consoleTag + "Error in downloading master branch ZIP for GitHub user account: " + user + " repository: " + repository.getName(), e);
+                            }
+                        } else {
+                            log.info(consoleTag + "[DownloadMaster][Skipping] Skipping since the repo is not in include list : " + repository.getName());
                         }
                     });
                 }
@@ -111,30 +115,34 @@ public class GitHubRepoInfoGenerator implements RepoInfoGenerator {
                 if (!AppConfig.isSkipScan() || AppConfig.isDownloadTags()) {
                     //Get the list of tags for each repository
                     userRepositoryList.parallelStream().forEach(repository -> {
-                        log.info(consoleTag + "Fetching tags for GitHub user account: " + user + " repository: " + repository.getName());
-                        try {
-                            List<RepositoryTag> repositoryTagLists = repositoryService.getTags(repository);
-                            log.info(consoleTag + repositoryTagLists.size() + " tags found for user account: " + user + " repository:" + repository.getName());
+                        if (AppConfig.getGithubRepos() == null ||  AppConfig.getGithubRepos().contains(repository.getName())) {
+                            log.info(consoleTag + "Fetching tags for GitHub user account: " + user + " repository: " + repository.getName());
+                            try {
+                                List<RepositoryTag> repositoryTagLists = repositoryService.getTags(repository);
+                                log.info(consoleTag + repositoryTagLists.size() + " tags found for user account: " + user + " repository:" + repository.getName());
 
-                            //Create persistable Repo object with repository and tag information
-                            repositoryTagLists.parallelStream().forEach(repositoryTag -> {
-                                Repo repo = new Repo(RepoType.GIT, repository.getOwner().getLogin(), repository.getName(), repository.getCloneUrl(), repositoryTag.getName(), repositoryTag.getZipballUrl(), new Date());
-                                repoList.add(repo);
+                                //Create persistable Repo object with repository and tag information
+                                repositoryTagLists.parallelStream().forEach(repositoryTag -> {
+                                    Repo repo = new Repo(RepoType.GIT, repository.getOwner().getLogin(), repository.getName(), repository.getCloneUrl(), repositoryTag.getName(), repositoryTag.getZipballUrl(), new Date());
+                                    repoList.add(repo);
 
-                                //Download tags only if download-tag flag is enabled
-                                if (AppConfig.isDownloadTags()) {
-                                    try {
-                                        log.info(consoleTag + "[DownloadTags] Started downloading tag: " + repo.getTagName() + " of: " + repository.getName());
-                                        gitTagDownloader.downloadRepo(repo, tagsDownloadFolder, false);
-                                        log.info(consoleTag + "[DownloadTags] Completed downloading tag: " + repo.getTagName() + " of: " + repository.getName());
-                                    } catch (Exception e) {
-                                        log.error("Error in downloading master branch ZIP for GitHub user account: " + user + " repository: " + repository.getName(), e);
+                                    //Download tags only if download-tag flag is enabled
+                                    if (AppConfig.isDownloadTags()) {
+                                        try {
+                                            log.info(consoleTag + "[DownloadTags] Started downloading tag: " + repo.getTagName() + " of: " + repository.getName());
+                                            gitTagDownloader.downloadRepo(repo, tagsDownloadFolder, false);
+                                            log.info(consoleTag + "[DownloadTags] Completed downloading tag: " + repo.getTagName() + " of: " + repository.getName());
+                                        } catch (Exception e) {
+                                            log.error(consoleTag + "Error in downloading master branch ZIP for GitHub user account: " + user + " repository: " + repository.getName(), e);
+                                        }
                                     }
-                                }
-                            });
+                                });
 
-                        } catch (Exception e) {
-                            log.error("Error in fetching tags for GitHub user account: " + user + " repository: " + repository.getName(), e);
+                            } catch (Exception e) {
+                                log.error(consoleTag + "Error in fetching tags for GitHub user account: " + user + " repository: " + repository.getName(), e);
+                            }
+                        } else {
+                            log.info(consoleTag + "[Skipping] Skipping since the repo is not in include list : " + repository.getName());
                         }
                     });
                 } else {

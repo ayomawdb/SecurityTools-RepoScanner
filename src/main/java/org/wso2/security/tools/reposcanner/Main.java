@@ -33,6 +33,9 @@ public class Main {
     @Parameter(names = {"-git.users"}, description = "Comma separated list of GitHub user accounts to scan", order = 2)
     private String gitUserAccounts;
 
+    @Parameter(names = {"-git.repos"}, description = "Comma separated list of Git repositories to limit the scan", order = 2)
+    private String gitRepos;
+
     @Parameter(names = {"-maven.home"}, description = "Maven home (if environment variables are not set)", order = 3)
     private String mavenHome;
 
@@ -118,6 +121,12 @@ public class Main {
         if (gitUserAccounts != null) {
             for (String user : gitUserAccounts.split(",")) {
                 AppConfig.addGithubAccount(user);
+            }
+        }
+
+        if (gitRepos != null) {
+            for (String repo : gitRepos.split(",")) {
+                AppConfig.addGithubRepos(repo);
             }
         }
 

@@ -30,6 +30,7 @@ public class AppConfig {
 
     private static String mavenHome;
     private static List<String> githubAccounts;
+    private static List<String> githubRepos;
     private static List<String> mavenOutputSkipPatterns;
 
     public static boolean isVerbose() {
@@ -85,6 +86,17 @@ public class AppConfig {
             AppConfig.githubAccounts = new ArrayList<>();
         }
         AppConfig.githubAccounts.add(githubAccount);
+    }
+
+    public static List<String> getGithubRepos() {
+        return AppConfig.githubAccounts;
+    }
+
+    public static void addGithubRepos(String githubRepo) {
+        if (AppConfig.githubRepos == null) {
+            AppConfig.githubRepos = new ArrayList<>();
+        }
+        AppConfig.githubRepos.add(githubRepo);
     }
 
     public static List<String> getMavenOutputSkipPatterns() {
